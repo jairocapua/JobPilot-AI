@@ -22,6 +22,7 @@
 ```
 /
 ├── AGENTS.md
+├── proxy.ts                                → Auth route protection (Next.js 16 proxy; was middleware.ts)
 ├── context/
 │   ├── project-overview.md
 │   ├── architecture.md
@@ -36,10 +37,8 @@
 │   ├── layout.tsx                          → Root layout, PostHog provider
 │   ├── page.tsx                            → Homepage
 │   ├── (auth)/
-│   │   ├── login/
-│   │   │   └── page.tsx                   → Login page
-│   │   └── callback/
-│   │       └── page.tsx                   → OAuth callback handler
+│   │   └── login/
+│   │       └── page.tsx                   → Login page (Google + GitHub OAuth)
 │   ├── dashboard/
 │   │   └── page.tsx                       → Main dashboard
 │   ├── profile/
@@ -49,6 +48,10 @@
 │   │   └── [id]/
 │   │       └── page.tsx                   → Individual job details page
 │   └── api/
+│       ├── auth/
+│       │   ├── oauth/[provider]/route.ts  → Start OAuth (sets PKCE cookie, redirects to provider)
+│       │   ├── callback/route.ts          → OAuth code exchange + sets session cookies
+│       │   └── refresh/route.ts           → Token refresh route (createRefreshAuthRouter)
 │       ├── agent/
 │       │   ├── find/route.ts              → Trigger Adzuna job discovery
 │       │   └── research/route.ts          → Trigger company research agent
@@ -290,50 +293,73 @@ Access: authenticated users only, own files only.
 ## Authentication
 
 - Provider: InsForge Auth
-- Methods: Google OAuth, GitHub OAuth
+- Methods: Google OAuth, GitHub OAuth (OAuth only — no email/password)
 - Protected routes: /dashboard, /profile, /find-jobs, /find-jobs/[id]
 - Public routes: /, /login
-- Middleware in middleware.ts checks session on every protected route
+- Route protection lives in `proxy.ts` at the project root (Next.js 16 renamed
+  the `middleware` convention to `proxy`). It runs `updateSession()` from
+  `@insforge/sdk/ssr` to refresh tokens, then redirects unauthenticated users on
+  protected routes to /login.
+- Session reads use `insforge.auth.getCurrentUser()` (async, returns
+  `{ data: { user } }`) — not the synchronous `getUser()`.
 - On login → redirect to /dashboard
+
+### OAuth flow (server-side, cookie-based)
+
+OAuth must be completed server-side so the session lands in app-domain cookies
+the proxy can read. The browser SDK alone keeps tokens in memory only.
+
+1. Login page renders Google/GitHub links to `/api/auth/oauth/{provider}`.
+2. `app/api/auth/oauth/[provider]/route.ts` calls `signInWithOAuth(provider, {
+   redirectTo: <origin>/api/auth/callback, skipBrowserRedirect: true })`, stores
+   the returned PKCE `codeVerifier` in a short-lived httpOnly cookie
+   (`insforge_pkce_verifier`, SameSite=lax), and redirects to the provider.
+3. `app/api/auth/callback/route.ts` reads `insforge_code` + the verifier cookie,
+   calls `exchangeOAuthCode(code, verifier)`, writes the session with
+   `setAuthCookies(response.cookies, tokens)`, and redirects to /dashboard.
+
+> The provider `redirectTo` (`<origin>/api/auth/callback`) must be added to
+> `allowedRedirectUrls` in the InsForge dashboard, or OAuth fails.
 
 ---
 
 ## InsForge Client Pattern
 
+The SSR helpers live in the `@insforge/sdk/ssr` subexport of the `@insforge/sdk`
+package (there is no standalone `@insforge/ssr` package). They keep the refresh
+token server-owned (httpOnly cookie `insforge_refresh_token`) while exposing the
+short-lived access token to the browser (`insforge_access_token`, not httpOnly).
+
 Two separate InsForge instances — never mix them:
 
 ```typescript
 // lib/insforge-client.ts
-// Browser-side — used in client components for auth state
-import { createBrowserClient } from "@insforge/ssr";
-export const insforge = createBrowserClient(
-  process.env.NEXT_PUBLIC_INSFORGE_URL!,
-  process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY!,
-);
+// Browser-side — used in client components for auth state, storage, realtime
+import { createBrowserClient } from "@insforge/sdk/ssr";
+
+export const insforge = createBrowserClient({
+  baseUrl: process.env.NEXT_PUBLIC_INSFORGE_URL!,
+  anonKey: process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY!,
+});
 
 // lib/insforge-server.ts
-// Server-side — used in API routes, Server Actions, agent code
-import { createServerClient } from "@insforge/ssr";
+// Server-side — used in Server Components, API routes, Server Actions, agent code
+import { createServerClient } from "@insforge/sdk/ssr";
+import type { InsForgeClient } from "@insforge/sdk";
 import { cookies } from "next/headers";
 
-export const createInsforgeServer = async () => {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_INSFORGE_URL!,
-    process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (cookiesToSet) => {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options),
-          );
-        },
-      },
-    },
-  );
+export const createInsforgeServer = async (): Promise<InsForgeClient> => {
+  return createServerClient({
+    baseUrl: process.env.NEXT_PUBLIC_INSFORGE_URL!,
+    anonKey: process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY!,
+    cookies: await cookies(),
+  });
 };
 ```
+
+The browser client reads the access-token cookie and refreshes via the route at
+`app/api/auth/refresh/route.ts` (`createRefreshAuthRouter()`). The server client
+reads only the access-token cookie and uses it as the per-request bearer token.
 
 ---
 

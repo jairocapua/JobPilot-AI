@@ -5,17 +5,24 @@ import { HowItWorks } from "@/components/homepage/HowItWorks";
 import { Features } from "@/components/homepage/Features";
 import { Testimonial } from "@/components/homepage/Testimonial";
 import { CTASection } from "@/components/homepage/CTASection";
+import { createInsforgeServer } from "@/lib/insforge-server";
 
-export default function Home() {
+export default async function Home() {
+  const insforge = await createInsforgeServer();
+  const {
+    data: { user },
+  } = await insforge.auth.getCurrentUser();
+  const ctaHref = user ? "/dashboard" : "/login";
+
   return (
     <>
-      <Navbar />
+      <Navbar ctaHref={ctaHref} />
       <main className="flex-1">
-        <Hero />
+        <Hero ctaHref={ctaHref} />
         <HowItWorks />
         <Features />
         <Testimonial />
-        <CTASection />
+        <CTASection ctaHref={ctaHref} />
       </main>
       <Footer />
     </>

@@ -102,6 +102,7 @@ className="bg-purple-500 text-gray-600"
   /* Dark overlays */
   --color-overlay: #111827;
   --color-overlay-dark: #131316;
+  --color-overlay-foreground: #ffffff;
 
   /* Border radius */
   --radius-sm: 4px;

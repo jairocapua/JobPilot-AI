@@ -2,7 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
-export function Hero() {
+type Props = {
+  ctaHref?: string;
+};
+
+export function Hero({ ctaHref = "/login" }: Props) {
   return (
     <section className="hero-gradient pt-24 pb-0 px-8">
       <div className="max-w-[1440px] mx-auto text-center">
@@ -16,13 +20,13 @@ export function Hero() {
 
         <div className="flex items-center justify-center gap-3 mb-12">
           <Link
-            href="/login"
-            className="inline-flex items-center gap-2 bg-overlay-dark text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:opacity-90 transition-opacity"
+            href={ctaHref}
+            className="inline-flex items-center gap-2 bg-overlay-dark text-overlay-foreground text-sm font-medium px-5 py-2.5 rounded-lg hover:opacity-90 transition-opacity"
           >
             Get Started <ArrowRight size={14} />
           </Link>
           <Link
-            href="/login"
+            href={ctaHref}
             className="inline-flex items-center bg-surface border border-border text-text-primary text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-surface-secondary transition-colors"
           >
             Find Your First Match

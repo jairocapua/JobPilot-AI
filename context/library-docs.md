@@ -34,37 +34,31 @@ Never rely on general training knowledge alone for library APIs — they change 
 
 Two separate instances — never mix them:
 
+SSR helpers come from the `@insforge/sdk/ssr` subexport (there is no
+`@insforge/ssr` package). Install `@insforge/sdk`.
+
 ```typescript
 // lib/insforge-client.ts — browser context only
-import { createBrowserClient } from "@insforge/ssr";
+import { createBrowserClient } from "@insforge/sdk/ssr";
 
-export const insforge = createBrowserClient(
-  process.env.NEXT_PUBLIC_INSFORGE_URL!,
-  process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY!,
-);
+export const insforge = createBrowserClient({
+  baseUrl: process.env.NEXT_PUBLIC_INSFORGE_URL!,
+  anonKey: process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY!,
+});
 ```
 
 ```typescript
 // lib/insforge-server.ts — server context only
-import { createServerClient } from "@insforge/ssr";
+import { createServerClient } from "@insforge/sdk/ssr";
+import type { InsForgeClient } from "@insforge/sdk";
 import { cookies } from "next/headers";
 
-export const createInsforgeServer = async () => {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_INSFORGE_URL!,
-    process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (cookiesToSet) => {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options),
-          );
-        },
-      },
-    },
-  );
+export const createInsforgeServer = async (): Promise<InsForgeClient> => {
+  return createServerClient({
+    baseUrl: process.env.NEXT_PUBLIC_INSFORGE_URL!,
+    anonKey: process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY!,
+    cookies: await cookies(),
+  });
 };
 ```
 
@@ -84,10 +78,19 @@ export const createInsforgeServer = async () => {
 const insforge = await createInsforgeServer();
 const {
   data: { user },
-  error,
-} = await insforge.auth.getUser();
+} = await insforge.auth.getCurrentUser();
 if (!user) redirect("/login");
 ```
+
+`getCurrentUser()` is async and returns `{ data: { user }, error }`. Do not use
+the synchronous `getUser()` / `getSession()` — those read only the in-memory
+session and return null in fresh server requests.
+
+Route protection lives in `proxy.ts` (Next.js 16 renamed `middleware`). It runs
+`updateSession()` from `@insforge/sdk/ssr`. OAuth is completed server-side via
+route handlers under `app/api/auth/` — see architecture.md "OAuth flow".
+The dependency to install is `@insforge/sdk` (the `@insforge/ssr` package in
+older notes does not exist).
 
 ---
 

@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
-export function CTASection() {
+type Props = {
+  ctaHref?: string;
+};
+
+export function CTASection({ ctaHref = "/login" }: Props) {
   return (
     <section className="cta-gradient py-24 px-8">
       <div className="max-w-[1440px] mx-auto text-center">
@@ -15,13 +19,13 @@ export function CTASection() {
 
         <div className="flex items-center justify-center gap-3">
           <Link
-            href="/login"
-            className="inline-flex items-center gap-2 bg-overlay-dark text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:opacity-90 transition-opacity"
+            href={ctaHref}
+            className="inline-flex items-center gap-2 bg-overlay-dark text-overlay-foreground text-sm font-medium px-5 py-2.5 rounded-lg hover:opacity-90 transition-opacity"
           >
             Get Started <ArrowRight size={14} />
           </Link>
           <Link
-            href="/login"
+            href={ctaHref}
             className="inline-flex items-center bg-surface border border-border text-text-primary text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-surface-secondary transition-colors"
           >
             Find Your First Match
