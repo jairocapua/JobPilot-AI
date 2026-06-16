@@ -143,6 +143,85 @@ Auth card always uses `rounded-2xl` (not `rounded-lg`). Cards on inner app pages
 **Pattern notes:**
 Dark buttons always use `hover:opacity-90 transition-opacity` (not `hover:bg-*`). Light/surface buttons always use `hover:bg-surface-secondary transition-colors`. Never mix the two hover strategies on the same button.
 
+### NavLinks (Active Nav)
+**File:** `components/layout/NavLinks.tsx`
+**Pattern:** Client component (`"use client"`) using `usePathname` to detect the active route. Imported by `Navbar`.
+```
+active link: text-accent
+inactive link: text-text-dark hover:text-accent transition-colors
+font: text-sm font-medium
+gap between links: gap-8
+```
+
+### Navbar (App Pages)
+**File:** `components/layout/Navbar.tsx` (updated)
+**Pattern:** Same as before but now uses `NavLinks` for active state. Accepts `showCta?: boolean` (default true). Pass `showCta={false}` on authenticated app pages to hide the "Start for free" CTA. A `div.w-24` spacer keeps the logo centered when CTA is hidden.
+
+### CompletionIndicator
+**File:** `components/profile/CompletionIndicator.tsx`
+**Pattern:** White card, `rounded-xl`. Two-column layout: left = icon + text + missing-field pills; right = SVG donut ring.
+```
+card: bg-surface border border-border rounded-xl p-6 shadow-sm
+icon: SVG circle with fill error, white exclamation path
+heading: text-sm font-semibold text-text-primary
+body text: text-sm text-text-secondary leading-relaxed
+missing field pills: text-xs font-semibold text-error bg-surface-secondary border border-border rounded px-2 py-0.5 uppercase tracking-wide
+donut track: stroke var(--color-border), strokeWidth 8
+donut fill: stroke var(--color-error), strokeWidth 8, strokeLinecap round, rotate(-90 50 50)
+percent text: text-lg font-semibold text-text-primary (absolute centered)
+```
+
+### ResumeUpload
+**File:** `components/profile/ResumeUpload.tsx`
+**Pattern:** White card, `rounded-xl`. Upload zone with dashed border + cloud icon. Bottom row: text + purple Generate button. When a resume is uploaded, shows a file row with View, Extract Profile, and Replace buttons.
+```
+card: bg-surface border border-border rounded-xl p-6 shadow-sm
+heading: text-base font-semibold text-text-primary
+upload zone: border-2 border-dashed border-border rounded-lg p-8 flex-col items-center gap-2 hover:border-accent transition-colors
+upload icon: CloudUpload h-8 w-8 text-text-muted
+upload text: text-sm font-medium text-text-primary
+file note: text-xs text-text-muted
+select button: px-4 py-2 border border-border rounded-md text-sm font-medium text-text-primary hover:bg-surface-secondary transition-colors
+generate button: flex items-center gap-2 px-4 py-2 bg-accent text-accent-foreground text-sm font-medium rounded-md hover:opacity-90 transition-opacity whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed
+uploading state: Loader2 h-8 w-8 text-accent animate-spin + "Uploading…" (replaces cloud icon inside the same dashed zone)
+uploaded state: border border-border rounded-lg p-4 row — FileText h-5 w-5 text-accent + filename (text-sm font-medium text-text-primary truncate) + "View resume" link (text-xs text-accent) + [Extract Profile button] + Replace button
+extract button: flex items-center gap-2 px-4 py-2 border border-border rounded-md text-sm font-medium text-text-primary bg-surface hover:bg-surface-secondary transition-colors whitespace-nowrap disabled:opacity-50 — Sparkles h-4 w-4 icon; Loader2 h-4 w-4 animate-spin + "Extracting…" while in flight
+error text: text-sm text-error
+```
+**State pattern:** dashed drop zone shows when no resume / while uploading; the bordered file row replaces it once a resume exists. Drag-and-drop and click both trigger the hidden `<input type="file" accept="application/pdf">`. Client-side validation: PDF mime + ≤5MB before upload. `extracting` boolean drives disabled state on the Extract Profile button while the `/api/resume/extract` POST is in flight; on success calls `onExtract?(data)` — parent (`ProfileBody`) merges extracted fields into shared state. `generating` boolean drives disabled state on the Generate button while the `/api/resume/generate` POST is in flight; on success updates local `url`, `key`, `fileName` state directly (no prop callback needed).
+**Props:** `userId: string, resumePdfUrl: string | null, resumePdfKey: string | null, resumePdfName: string | null, onExtract?: (data: Partial<ProfileData>) => void`
+
+### ProfileBody
+**File:** `components/profile/ProfileBody.tsx`
+**Pattern:** Client wrapper with no visual output of its own — owns shared state so `ResumeUpload` can push extracted data into `ProfileForm`. Renders both siblings.
+**State pattern:** `profileData: ProfileData` holds the merged form state; `formKey: number` remounts `ProfileForm` on each extraction (so `initialData` refreshes). `handleExtract` does a sparse merge `{ ...prev, ...extracted }` then increments `formKey` — extracted fields always win, unextracted fields keep prior values.
+**Props:** `initialData: ProfileData, userId: string, resumePdfKey: string | null`
+
+### ProfileForm
+**File:** `components/profile/ProfileForm.tsx`
+**Pattern:** Client component. Single `rounded-xl` card containing all profile sections. Takes `initialData: ProfileData` prop and manages state internally.
+```
+card: bg-surface border border-border rounded-xl shadow-sm
+card header: px-6 pt-6 pb-5 border-b border-border
+card title: text-base font-semibold text-text-primary
+card subtitle: text-sm text-text-secondary
+section gap: gap-8 (between Personal/Professional/Work Exp/Education/Preferences)
+section header: text-sm font-semibold text-text-secondary mb-4
+field label: text-xs font-medium text-text-secondary uppercase tracking-wide mb-1
+text input: px-3 py-2 border border-border rounded-md text-sm text-text-primary placeholder:text-text-muted focus:ring-1 focus:ring-accent focus:border-accent bg-surface
+disabled input: opacity-60 cursor-not-allowed (email field)
+select: same as input + appearance-none + ChevronDown icon wrapper
+date input: same as input + pl-9 + Calendar icon left-3
+skill/industry tag: bg-surface-secondary border border-border rounded-full px-3 py-1 text-xs text-text-primary
+tag remove: X h-3 w-3 text-text-muted hover:text-text-primary
+work exp entry: border border-border rounded-lg p-4
+currently working checkbox: h-4 w-4 rounded border-2; checked: bg-info border-info; Check icon text-accent-foreground
+save button: w-full py-3 bg-accent text-accent-foreground text-sm font-medium rounded-md hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed
+save button (pending): label becomes "Saving…", disabled while the action runs
+save feedback: text-sm text-center below the button — success: text-success ("Profile saved."), error: text-error
+```
+**Save pattern:** wired via `useActionState(saveProfile, …)` called imperatively — `onClick={() => saveAction(form)}` (not a native form submit, since controlled state holds arrays/objects that FormData can't carry). `isPending` drives the disabled + "Saving…" state.
+
 ---
 
 ## Global CSS Classes

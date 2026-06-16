@@ -1,59 +1,83 @@
-# Memory — Feature 03 PostHog Initialization + Review Fixes
+# Memory — Feature 07 AI Profile Extraction from Resume (complete)
 
-Last updated: 2026-06-16
+Last updated: 2026-06-17
 
 ## What was built
 
-**Feature 03 — PostHog Initialization (complete):**
+**Feature 07 — AI Profile Extraction (complete, all post-review fixes applied):**
 
-- `lib/posthog-client.ts` — browser PostHog wrapper; exports `initPostHog()` (calls `posthog.init` with `capture_pageview: false`, `person_profiles: "identified_only"`), `resetPostHog()` (wraps `posthog.reset()` for use when logout is built), and re-exports the `posthog` singleton
-- `lib/posthog-server.ts` — server PostHog factory; exports `createPostHogServer()` returning a `PostHog` instance with `flushAt: 1`, `flushInterval: 0`
-- `app/providers.tsx` — updated; calls `initPostHog()` on mount, then `insforge.auth.getCurrentUser()` to identify the user if a session exists; `.catch()` handles auth failures silently; `posthog` now imported from `@/lib/posthog-client` (not directly from `posthog-js`)
-- `package.json` / `package-lock.json` — `posthog-node` installed
-- `context/progress-tracker.md` — Feature 03 marked complete; `posthog.reset()` deferral noted under Notes
+- `agent/extract-resume.ts` — `extractProfileFromPdf(buffer)` using pdf-parse v2 (`PDFParse` class) + GPT-4o. Returns `{ success: boolean; data?: Partial<ProfileData>; error?: string }` — never throws. Image-PDF case (text < 50 chars) returns `success: false` with user-friendly message. Unexpected errors logged with `[agent/extract-resume]` prefix, generic message returned.
+- `app/api/resume/extract/route.ts` — POST handler at the architecture-correct path. Receives `{ resumeKey: string }`, downloads from private `resumes` bucket via `createInsforgeServer()`, calls agent, returns `{ success, data? }` or `{ success: false, error }`. All responses include `success: boolean`.
+- `components/profile/ProfileBody.tsx` — client wrapper owning `profileData` state + `formKey`. `handleExtract` sparse-merges extracted fields and increments `formKey` to remount `ProfileForm`.
+- `components/profile/ResumeUpload.tsx` — Extract Profile button in uploaded-file row; `extracting` boolean state; fetch to `/api/resume/extract`; checks `!json.success`.
+- `next.config.ts` — `serverExternalPackages: ["pdf-parse", "pdfjs-dist"]` added to prevent webpack bundling pdfjs-dist (worker chunk path breaks at runtime without this).
 
-**Carried forward from Feature 02 (unchanged):**
-- `app/layout.tsx` already wraps the app in `<PostHogProvider>` — no changes needed
-- `app/providers.tsx` already had `PostHogPageView` for manual `$pageview` tracking — kept as-is
+**Post-review filename persistence fix:**
+
+- `migrations/20260617120000_add-resume-pdf-name.sql` — `resume_pdf_name TEXT` column added to `profiles`; applied to live DB via `run-raw-sql` MCP tool.
+- `types/index.ts` — `resumePdfName: string | null` added to `ProfileData`.
+- `lib/profile.ts` — `resume_pdf_name: string | null` added to `ProfileRow`; mapped in `rowToProfileData`.
+- `actions/profile.ts` — `saveResumeUrl(url, key, name)` now saves `resume_pdf_name`. Third param is required.
+- `components/profile/ResumeUpload.tsx` — `resumePdfName` prop; `fileName` state initialises from it (fallback: `"resume.pdf"` for rows predating the column); passes `file.name` to `saveResumeUrl`.
+- `components/profile/ProfileBody.tsx` — passes `resumePdfName={profileData.resumePdfName}` to `ResumeUpload`.
+
+**Context files updated:**
+- `context/progress-tracker.md` — Feature 07 complete; all decisions and fixes logged
+- `context/ui-registry.md` — `ProfileBody` entry added; `ResumeUpload` updated with Extract Profile button + `extracting` state
+- `context/library-docs.md` — pdf-parse section updated to v2 API
+
+---
 
 ## Decisions made
 
-- **InsForge `Auth` has no `onAuthStateChange`:** Cannot reactively listen for login/logout events. Identity is established on mount by calling `getCurrentUser()`. `posthog.reset()` cannot be wired reactively — it must be called explicitly at the logout trigger.
-- **`posthog.reset()` deferred to logout feature:** `resetPostHog()` is exported from `@/lib/posthog-client` and ready. Trigger: call it alongside `insforge.auth.signOut()` wherever the logout button is built. Logout is `POST /api/auth/logout` (from Feature 02) — a logout client component will need to call `resetPostHog()` before/after submitting that form.
-- **`posthog` singleton import source:** All files that use `posthog` import it from `@/lib/posthog-client`, never directly from `posthog-js`. This keeps the module as the single source of truth for the PostHog instance.
-- **Server client is always a fresh factory:** `createPostHogServer()` returns a new `PostHog` instance each call. Callers must always call `await posthog.shutdown()` after use — events are lost without it.
+- **pdf-parse / pdfjs-dist must be in `serverExternalPackages`:** webpack bundles pdfjs-dist and generates a chunk for the worker, but the chunk path can't be resolved at runtime — "Setting up fake worker failed." Adding both to `serverExternalPackages` in `next.config.ts` keeps them out of the webpack graph; Node.js requires them natively and pdfjs-dist finds its own worker.
+- **pdf-parse v2 API:** installed version is v2.4.5. Named class import only: `import { PDFParse } from "pdf-parse"`. Constructor: `new PDFParse({ data: new Uint8Array(buffer) })`. Call `.getText()` → `.text`, then `.destroy()` in a `finally` block. The v1 default function does not exist in this version.
+- **Agent function pattern — return, never throw:** `extractProfileFromPdf` wraps all logic in try/catch. User-facing errors (image PDF) return `{ success: false, error: "<human message>" }`. Unexpected errors log with `[agent/extract-resume]` prefix and return a generic message — raw errors never reach the client.
+- **Route path:** `app/api/resume/extract/route.ts` — matches `architecture.md`. Old path `app/api/extract-resume/` was wrong and has been deleted.
+- **State bridge:** `ProfileBody` (client wrapper) owns `profileData` + `formKey`. Extraction merges into `profileData` and increments `formKey` to remount `ProfileForm` with fresh `initialData`. `ResumeUpload` manages its own upload/key state independently.
+- **Resume filename stored in DB:** `resume_pdf_name TEXT` on `profiles`. `saveResumeUrl(url, key, name)` saves all three. `ResumeUpload` reads it back via `resumePdfName` prop on return visits. Falls back to `"resume.pdf"` for rows that predate the column.
+- **Fields not extracted (by design):** `remotePreference`, `salaryExpectation`, `jobTitlesSeeking`, `workAuthorization`, `preferredLocations` — future intent, not past history. GPT-4o cannot reliably infer them from a resume.
+- **`saveResumeUrl` signature change:** now `(url: string, key: string, name: string)` — all three required. Any future call site must pass the filename.
+
+---
 
 ## Problems solved
 
-- **Review caught unhandled promise rejection:** `getCurrentUser()` in `providers.tsx` had no `.catch()`. Fixed — failures are logged with `[PostHogProvider]` prefix and silently swallowed (identify is non-critical).
-- **`posthog.reset()` was missing and untracked:** Not implementable reactively (no `onAuthStateChange`). Added `resetPostHog()` export and a note in `progress-tracker.md` so the next session that builds logout knows exactly where to call it.
+- **"Setting up fake worker failed"** — pdfjs-dist webpack bundling. Fix: `serverExternalPackages: ["pdf-parse", "pdfjs-dist"]` in `next.config.ts`.
+- **Filename shows as "resume.pdf" on return visits** — actual filename not stored in DB. Fix: `resume_pdf_name` column + threaded through types/lib/actions/components.
+- **Route at wrong path** — was `app/api/extract-resume/`, should be `app/api/resume/extract/`. Deleted old, created new.
+- **Agent threw instead of returning** — changed to `{ success, data?, error? }` pattern so the route can forward user-friendly messages without exposing raw errors.
+
+---
 
 ## Current state
 
-- Feature 01 Homepage: ✅ complete
-- Feature 02 Auth: ✅ complete (OAuth round-trip unverified until Feature 14 dashboard exists)
-- Feature 03 PostHog Initialization: ✅ complete
-- `posthog.identify()` wired — fires on mount if user session exists
-- `posthog.reset()` ready but deferred — no logout UI exists yet
-- `NEXT_PUBLIC_POSTHOG_KEY` and `NEXT_PUBLIC_POSTHOG_HOST` must be in `.env.local` for PostHog to actually send events — **not yet confirmed by user**
-- Features 04–17: pending
+- Features 01–07: ✅ complete including all post-review and post-ship fixes
+- `tsc --noEmit`: passes
+- `serverExternalPackages` fix confirmed — worker error gone
+- Resume filename now persists correctly across sessions
+- **Full extraction round-trip (OAuth → upload → GPT-4o → form repopulate) verified live in browser — worker fix confirmed working**
+- `posthog.reset()` on logout: deferred — `resetPostHog()` exported from `@/lib/posthog-client`, call it with `insforge.auth.signOut()` when logout UI is built
+- End-to-end save/upload for Features 05–06 still unverified headlessly — verify once OAuth `allowedRedirectUrls` is configured in InsForge dashboard
+
+---
 
 ## Next session starts with
 
-**Feature 04 — Database Schema.**
+**Feature 08 — Resume PDF Generation from Profile**
 
-Per `context/build-plan.md`:
-1. Create `profiles`, `agent_runs`, `jobs`, `agent_logs` tables in InsForge (use `run-raw-sql` MCP tool)
-2. Create `resumes` storage bucket with authenticated-only access (use `create-bucket` MCP tool)
-3. Add RLS policies on all four tables — always scoped to `user_id`
-4. Verify schema with `get-table-schema` MCP tool after creation
-5. Reference `context/architecture.md` for the exact column definitions — do not deviate
+Per `context/build-plan.md` and `context/library-docs.md`:
+1. Run `/architect 08 Resume PDF Generation from Profile` before writing any code
+2. Library: `@react-pdf/renderer` — check `context/library-docs.md` "react-pdf" section for rules before implementing (server-side only, `renderToBuffer`, supported CSS properties)
+3. Route goes at `app/api/resume/generate/route.ts` (per `architecture.md`)
+4. Generated PDF uploaded to InsForge `resumes` bucket — same remove-then-upload pattern as Feature 06 (store returned `url` + `key` + filename)
+5. The "Generate Resume from Profile" button in `ResumeUpload` is already in the UI (currently inert) — wire it up
+6. `saveResumeUrl(url, key, name)` already handles persisting the result
 
-No UI is built in this feature. It is pure infrastructure.
+---
 
 ## Open questions
 
-- **PostHog env vars** — `NEXT_PUBLIC_POSTHOG_KEY` and `NEXT_PUBLIC_POSTHOG_HOST` must be in `.env.local`. Confirm with user before relying on PostHog events in any feature.
-- **Full OAuth round-trip** — still unverified end-to-end; needs `/dashboard` page (Feature 14) to confirm session is established after login.
-- **Production `allowedRedirectUrls`** — InsForge dashboard needs the deployed domain added when the app ships.
+- **OAuth allowedRedirectUrls:** add `<origin>/api/auth/callback` to InsForge dashboard to enable full OAuth round-trip. Until then, login is blocked.
 - **`posthog.reset()` on logout** — call `resetPostHog()` from `@/lib/posthog-client` alongside `insforge.auth.signOut()` when logout UI is built.
+- **Feature 08 design question:** should PDF generation be triggered from the same `ResumeUpload` card (replacing the current resume) or from a separate UI surface? Decide with `/architect` before implementing.

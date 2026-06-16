@@ -648,8 +648,12 @@ await insforge.storage
 ```
 
 **Supported CSS properties:**
-Only use these — others are silently ignored:
+These work reliably — others are silently ignored:
 `padding, margin, fontSize, color, fontFamily, flexDirection, alignItems, justifyContent, borderRadius, width, height, fontWeight, textAlign, lineHeight`
+
+**Also supported (yoga layout / explicit border properties):**
+- `flex, flexGrow, flexShrink, flexBasis` — yoga layout, fully supported
+- `borderBottomWidth, borderBottomColor, borderBottomStyle` (and Top/Left/Right variants) — use individual properties, not CSS shorthand (`borderBottom: "1pt solid #ccc"` is not parsed)
 
 **Rules:**
 
@@ -658,6 +662,7 @@ Only use these — others are silently ignored:
 - PDF generation only in `app/api/resume/` routes
 - Generated buffer uploaded directly to InsForge Storage — never written to disk
 - Always save public URL to DB after upload
+- Hex colors are required for PDF styles — CSS variables are not available at PDF render time
 
 ---
 
@@ -667,26 +672,29 @@ Only use these — others are silently ignored:
 
 ### Extract Text from Uploaded Resume
 
+The installed version is **v2.4.5** — it exports a named class, not a default function.
+
 ```typescript
-import pdf from "pdf-parse";
+import { PDFParse } from "pdf-parse"; // v2 named class — NOT `import pdf from "pdf-parse"`
 
-// In API route handling resume upload
-export async function POST(req: NextRequest) {
-  const formData = await req.formData();
-  const file = formData.get("resume") as File;
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-
-  const pdfData = await pdf(buffer);
-  const extractedText = pdfData.text; // raw text content
-
-  // Send to GPT-4o for structured extraction
+const parser = new PDFParse({ data: new Uint8Array(pdfBuffer) });
+let text: string;
+try {
+  const textResult = await parser.getText();
+  text = textResult.text?.trim() ?? "";
+} finally {
+  await parser.destroy(); // always clean up
 }
 ```
 
 **Rules:**
 
 - Server-side only — never import in client components
-- `pdfData.text` is raw unformatted text — GPT-4o handles the structure extraction
+- v2 API: `import { PDFParse } from "pdf-parse"` (named class). The v1 default function `import pdf from "pdf-parse"` does **not** exist in this version.
+- Constructor takes `{ data: Uint8Array }` — wrap a Node.js `Buffer` with `new Uint8Array(buffer)`
+- `.getText()` returns `Promise<TextResult>` where `.text` is the extracted string
+- Always call `.destroy()` in a `finally` block — never omit cleanup
+- `text` is raw unformatted text — GPT-4o handles structure extraction
 - Always handle parse errors — some PDFs are image-based and return empty text
-- If `pdfData.text` is empty or very short — return error to user: "Could not extract text from this PDF. Please try a different file."
+- If text is empty or shorter than 50 chars — return user error: "Could not extract text from this PDF. Please try a different file."
+- Node.js / Next.js + Vercel: natively supported, no explicit worker setup needed
