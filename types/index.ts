@@ -14,6 +14,16 @@ export type ProfileEducation = {
   graduationYear: string;
 };
 
+export type Job = {
+  id: string;
+  company: string;
+  title: string;
+  location: string | null;
+  salary: string | null;
+  matchScore: number;
+  foundAt: string;
+};
+
 export type ProfileData = {
   fullName: string;
   email: string;

@@ -222,6 +222,68 @@ save feedback: text-sm text-center below the button — success: text-success ("
 ```
 **Save pattern:** wired via `useActionState(saveProfile, …)` called imperatively — `onClick={() => saveAction(form)}` (not a native form submit, since controlled state holds arrays/objects that FormData can't carry). `isPending` drives the disabled + "Saving…" state.
 
+### SearchControls
+**File:** `components/find-jobs/SearchControls.tsx`
+**Pattern:** White card, `rounded-xl`. Two flex inputs (JOB TITLE with search icon, LOCATION plain) + purple Find Jobs button, all aligned to `items-end`. Success banner below in `bg-success-lightest`. Client component — manages jobTitle/location state locally (not connected to API until Feature 10).
+```
+card: bg-surface border border-border rounded-xl p-6 shadow-sm
+label: text-xs font-medium text-text-secondary uppercase tracking-wide
+text input: pl-9 pr-3 py-2 border border-border rounded-md text-sm text-text-primary placeholder:text-text-muted focus:ring-1 focus:ring-accent bg-surface outline-none
+location input: px-3 py-2 (no left icon)
+search icon in input: absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted
+Find Jobs button: flex items-center gap-2 px-5 py-2 bg-accent text-accent-foreground text-sm font-medium rounded-md hover:opacity-90 transition-opacity
+success banner: mt-4 px-4 py-2.5 bg-success-lightest rounded-lg flex items-center gap-2
+banner icon: h-4 w-4 text-success flex-shrink-0
+banner text: text-sm font-medium text-success-foreground
+```
+
+### JobFilters
+**File:** `components/find-jobs/JobFilters.tsx`
+**Pattern:** Full-width flex row inside the jobs card; bottom border divides it from the table. Left: borderless search icon + plain input. Right: two native selects styled as outlined pills with ChevronDown overlay. Client component — local state only; not wired to table until Feature 11.
+```
+row: flex items-center gap-3 px-4 py-3 border-b border-border
+filter input: w-full pl-6 py-1 text-sm text-text-primary placeholder:text-text-muted focus:outline-none bg-transparent (no border)
+filter icon: absolute left-0, h-4 w-4 text-text-muted
+select: appearance-none pl-3 pr-8 py-1.5 border border-border rounded-md text-sm text-text-primary bg-surface focus:outline-none focus:ring-1 focus:ring-accent
+select chevron: absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted pointer-events-none
+```
+
+### JobsTable
+**File:** `components/find-jobs/JobsTable.tsx`
+**Pattern:** Client component — uses `useRouter` for row click navigation to `/find-jobs/[id]`. Accepts `jobs: Job[]` prop. Columns: COMPANY (icon + name), ROLE, MATCH SCORE (bar + %), SALARY EST., DATE FOUND. No alternating rows; hover is `bg-surface-secondary`.
+```
+table: w-full (inside overflow-x-auto wrapper)
+th: text-left text-xs font-medium text-text-secondary uppercase tracking-wide px-4 py-3 whitespace-nowrap
+tr: border-b border-border last:border-0 hover:bg-surface-secondary transition-colors cursor-pointer
+td: px-4 py-3.5
+company icon box: w-8 h-8 rounded-md bg-surface-tertiary border border-border flex items-center justify-center
+company icon: Building2 h-4 w-4 text-text-muted
+company name: text-sm font-medium text-text-primary
+role: text-sm text-text-primary
+salary: text-sm text-text-primary (fallback "—" when null)
+date: text-sm text-text-muted
+```
+**MatchScoreBar (inlined):** 
+```
+track: w-20 h-1 bg-border-light rounded-full overflow-hidden
+fill: h-full rounded-full — bg-success (≥90), bg-info (≥80), bg-warning (<80) — width via inline style
+text: text-sm font-semibold — text-success (≥90), text-info-medium (≥80), text-warning (<80)
+```
+**Color threshold decision:** ≥90% green, 80–89% blue, <80% orange — matches design image (overrides ui-rules.md/ui-tokens.md which are stale for this section).
+
+### JobsPagination
+**File:** `components/find-jobs/JobsPagination.tsx`
+**Pattern:** Server component — pure props, no hooks. Flex row: "Showing X to Y of Z results" + "Jobs by Adzuna" credit on left; Previous/page numbers/Next on right. Active page has `bg-accent text-accent-foreground`. Feature 11 wires real navigation.
+```
+row: flex items-center justify-between px-4 py-3.5 border-t border-border
+results text: text-sm text-text-muted
+attribution: text-xs text-text-muted
+Previous/Next: px-3 py-1.5 text-sm text-text-secondary border border-border rounded-md hover:bg-surface-secondary
+page button (inactive): w-8 h-8 text-sm text-text-secondary rounded-md hover:bg-surface-secondary
+page button (active): w-8 h-8 text-sm bg-accent text-accent-foreground font-medium rounded-md
+ellipsis: text-sm text-text-muted px-1
+```
+
 ---
 
 ## Global CSS Classes

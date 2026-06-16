@@ -6,9 +6,9 @@ Update this file after every completed feature. Any AI agent reading this should
 
 ## Current Status
 
-**Phase:** Phase 2 — Profile Page
-**Last completed:** 08 Resume PDF Generation from Profile
-**Next:** 09 Find Jobs Page — Full UI
+**Phase:** Phase 3 — Find Jobs Page
+**Last completed:** 09 Find Jobs Page — Full UI
+**Next:** 10 Adzuna Job Discovery
 
 ---
 
@@ -30,7 +30,7 @@ Update this file after every completed feature. Any AI agent reading this should
 
 ### Phase 3 — Find Jobs Page
 
-- [ ] 09 Find Jobs Page — Full UI
+- [x] 09 Find Jobs Page — Full UI
 - [ ] 10 Adzuna Job Discovery
 - [ ] 11 Filter + Sort + Pagination
 
@@ -91,6 +91,10 @@ Update this file after every completed feature. Any AI agent reading this should
 - **07 — resume_pdf_name column:** Added `resume_pdf_name TEXT` to `profiles` (`migrations/20260617120000_add-resume-pdf-name.sql`, applied via `run-raw-sql`). `saveResumeUrl` now takes a third `name: string` param and writes `resume_pdf_name`. `ResumeUpload` passes `file.name` on upload and reads it back via a `resumePdfName` prop (from `ProfileData → ProfileBody → ResumeUpload`) on return visits. Falls back to `"resume.pdf"` for rows predating the column.
 - **07 — verification status:** `tsc --noEmit` passes; `serverExternalPackages` config confirmed to eliminate the worker error in the browser. Resume filename persistence verified. Full end-to-end extraction round-trip (GPT-4o → form repopulate) verified live. OAuth round-trip still pending InsForge dashboard config.
 
+- **09 Find Jobs — match score color thresholds (design overrides context files):** Design shows ≥90% green, 80–89% blue, <80% orange. This contradicts ui-rules.md (80–100% green, 60–79% blue) and ui-tokens.md (70–89% green). Design is the source of truth for visual decisions — thresholds implemented as: `score >= 90 → bg-success/text-success`, `score >= 80 → bg-info/text-info-medium`, `else → bg-warning/text-warning`. ui-rules.md and ui-tokens.md are stale for this section; Feature 12 MatchScore component must use these same thresholds.
+- **09 Find Jobs — SOURCE column omitted (design takes precedence):** build-plan.md lists a SOURCE (badge) column; the design shows only 5 columns (COMPANY, ROLE, MATCH SCORE, SALARY EST., DATE FOUND). "Exactly as shown" requirement overrides the spec. Feature 10 can add SOURCE if needed when real data is wired.
+- **09 Find Jobs — pagination mock matches design, not build-plan per-page rule:** Design shows "1 to 6 of 24 results" / 8 pages. Build-plan says 20 per page. Mock hardcodes design values; Feature 11 wires real pagination with 20 per page.
+- **09 Find Jobs — visual verification blocked pending OAuth:** `/find-jobs` is proxy-protected. Full visual verification requires OAuth `allowedRedirectUrls` to be configured in InsForge dashboard (see Auth manual step in Notes section).
 - **08 Resume PDF Generation — @react-pdf/renderer in serverExternalPackages:** same pattern as pdf-parse/pdfjs-dist. Added `"@react-pdf/renderer"` to the array in `next.config.ts` — its yoga-layout and fontkit internals fail when webpack bundles them.
 - **08 — agent file is .tsx:** `agent/generate-resume.tsx` uses JSX (`<Document>`, `<Page>`) so extension must be `.tsx`, not `.ts`.
 - **08 — GPT-4o with JSON fallback:** `generateAiContent()` calls GPT-4o with `response_format: { type: "json_object" }` to produce a professional summary and `workBullets` keyed by string index (`"0"`, `"1"`, …). If the call or JSON parse fails, the PDF still renders using raw `responsibilities` text from the profile — the AI step degrades gracefully.
