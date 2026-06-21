@@ -6,9 +6,9 @@ Update this file after every completed feature. Any AI agent reading this should
 
 ## Current Status
 
-**Phase:** Phase 3 — Find Jobs Page
-**Last completed:** 09 Find Jobs Page — Full UI
-**Next:** 10 Adzuna Job Discovery
+**Phase:** Phase 4 — Job Details Page
+**Last completed:** 13 Company Research Agent
+**Next:** 14 Dashboard Page — Full UI
 
 ---
 
@@ -31,13 +31,13 @@ Update this file after every completed feature. Any AI agent reading this should
 ### Phase 3 — Find Jobs Page
 
 - [x] 09 Find Jobs Page — Full UI
-- [ ] 10 Adzuna Job Discovery
-- [ ] 11 Filter + Sort + Pagination
+- [x] 10 Adzuna Job Discovery
+- [x] 11 Filter + Sort + Pagination
 
 ### Phase 4 — Job Details Page
 
-- [ ] 12 Job Details Page — Full UI
-- [ ] 13 Company Research Agent
+- [x] 12 Job Details Page — Full UI
+- [x] 13 Company Research Agent
 
 ### Phase 5 — Dashboard
 
@@ -68,6 +68,10 @@ Update this file after every completed feature. Any AI agent reading this should
   httpOnly lax cookie) → provider → `/api/auth/callback` (exchanges code,
   `setAuthCookies`) → `/dashboard`.
 - **02 Auth — session reads:** use `auth.getCurrentUser()` (async), not `getUser()`.
+- **02 Auth — OAuth button navigation:** Login provider controls use native
+  `GET` forms, not `next/link`. `/api/auth/oauth/[provider]` is a redirecting
+  route handler, not an App Router page; using `Link` makes Next attempt an RSC
+  payload fetch before falling back to browser navigation.
 
 - **05 Profile Page — Navbar split:** Navbar updated to accept `showCta?: boolean`. App pages pass `showCta={false}` to hide the "Start for free" CTA. A `NavLinks` client component (uses `usePathname`) handles active link coloring.
 - **05 Profile Page — ProfileForm props pattern:** `ProfileForm` takes `initialData: ProfileData` and manages all form state internally. Feature 06 only needs to (a) fetch real data in the page and pass it as `initialData`, and (b) wire the Save button to a server action.
@@ -102,6 +106,46 @@ Update this file after every completed feature. Any AI agent reading this should
 - **08 — DB update inline in route:** `saveResumeUrl` Server Action is not called from the API route (wrong layer). The route directly upserts `{ resume_pdf_url, resume_pdf_key, resume_pdf_name }` using `createInsforgeServer()`.
 - **08 — no new migration needed:** all three resume columns (`resume_pdf_url`, `resume_pdf_key`, `resume_pdf_name`) already exist from Features 06–07.
 - **08 — verification status:** `tsc --noEmit` passes. End-to-end (click Generate → GPT-4o → PDF → storage → file chip update) requires OAuth to be configured in InsForge dashboard.
+
+- **10 Adzuna Job Discovery — route path:** `app/api/agent/find/route.ts` → `POST /api/agent/find`. Follows build-plan.md exactly (not the `app/api/jobs/search/` path that would have matched resume route conventions).
+- **10 — InsForge client passed into agent:** `findJobsAgent()` in `agent/find-jobs.ts` receives the `InsForgeClient` instance from the route — agents do not call `createInsforgeServer()` themselves (no cookie access in arbitrary functions called from route handlers). Route creates the client once and passes it down.
+- **10 — Only save jobs at or above MATCH_THRESHOLD:** Adzuna returns up to 10 results; GPT-4o scores all 10; only those with `matchScore >= MATCH_THRESHOLD` (70) are inserted into the `jobs` table. The API response returns both `jobsFound` (total Adzuna results) and `savedCount` (strong matches saved).
+- **10 — No migration needed:** all required columns (`match_score`, `match_reason`, `matched_skills`, `missing_skills`, `run_id`, `source`, `external_apply_url`, etc.) exist in the initial schema from Feature 04.
+- **10 — Country detection from location string:** `lib/adzuna.ts` `detectCountry()` does keyword matching on the location string — "uk"/"london"/"manchester" → "gb", "australia"/"sydney" → "au", "canada"/"toronto" → "ca", default → "us". Feature 11 can surface an explicit country selector if needed.
+- **10 — Per-job `job_found` PostHog events:** The route fires one `job_found` event per saved job (using a single PostHog client instance with multiple `capture()` calls before `shutdown()`), each with `{ userId, source: "search", matchScore }`. This preserves per-job score granularity for Feature 17's Match Score Distribution chart.
+- **10 — `formatRelativeTime()` in `lib/utils.ts`:** Added alongside `MATCH_THRESHOLD`. Converts `TIMESTAMPTZ` from DB to human strings: "Just now", "X hours ago", "Yesterday", "X days ago", "Jun 12".
+- **10 — `router.refresh()` for job list update:** `SearchControls` (client component) calls `router.refresh()` after a successful search — this triggers Next.js to re-run the `FindJobsPage` server component and re-fetch jobs from DB, updating the table without a full page reload.
+- **10 — Feature 11 pagination deferred:** `JobsPagination` now receives real counts (`from=1`, `to=jobs.length`, `total=jobs.length`, `pageCount=1`) but no actual pagination logic. Feature 11 wires 20-per-page with URL search params.
+
+- **12 Job Details Page — route and data:** `app/find-jobs/[id]/page.tsx` — server component, `params` is a Promise (Next.js 15/16), awaited before use. Queries `jobs` table for the single row matching `id + user_id + status=active`; calls `notFound()` if missing. Maps DB snake_case to `JobDetail` camelCase type. Content width `max-w-[760px]` to match design.
+- **12 — job description field:** `about_role` stores the raw Adzuna description string (confirmed from `agent/adzuna.ts`). NOT `responsibilities[]` — that array is never populated by the Adzuna agent.
+- **12 — apply URL field:** `external_apply_url` (= Adzuna `redirect_url`). Both `source_url` and `external_apply_url` are saved with the same value; `external_apply_url` used for View Job Post and Apply Now links.
+- **12 — match badge color (header badge):** Design shows 85% as green. Header badge uses 2-level rule: ≥80 = `bg-success-lightest text-success-foreground` (green), <80 = `bg-warning/10 text-warning` (orange). Different from the table bar which uses a 3-level system (≥90/≥80/else). Design is source of truth.
+- **12 — missing skills badge color:** Design shows warning/orange for missing skills. Uses `bg-warning/10 text-warning` (Tailwind opacity modifier for a soft orange). `bg-accent-muted text-accent` (from ui-tokens.md) is overridden by design.
+- **12 — CompanyResearch wired for Feature 13:** The Research Company button calls `POST /api/agent/research` with `{ jobId }` and calls `router.refresh()` on success. Feature 13 only needs to implement the API route — the client is already wired. Error state shown below empty state if API call fails.
+- **12 — verification status:** `tsc --noEmit` passes. Full end-to-end requires OAuth configured in InsForge dashboard.
+
+- **13 Company Research Agent — dependencies:** Added direct dependencies `@browserbasehq/sdk`, `@browserbasehq/stagehand`, and `zod` for the planned Browserbase + Stagehand + schema extraction flow.
+- **13 — route and ownership:** `app/api/agent/research/route.ts` implements `POST /api/agent/research`. It validates `jobId`, uses `getCurrentUser()`, loads only the current user's active job, loads the profile, calls the research agent, saves a success-wrapped response, fires `company_researched`, and revalidates the literal job details path.
+- **13 — agent logging:** Research logs use the job's existing `run_id`. If a job has no `run_id`, the route creates a minimal fallback `agent_runs` row so `agent_logs.run_id` stays valid, then marks that fallback run completed or failed.
+- **13 — Browserbase/Stagehand helpers:** Added `lib/browserbase.ts` and `lib/stagehand.ts`. Company research uses one Browserbase session with `timeout: 120`, initializes Stagehand with `env: "BROWSERBASE"`, `modelName: "gpt-4o"`, `OPENAI_API_KEY`, and `disablePino`, and always closes Stagehand in `finally`.
+- **13 — research flow:** `agent/research.ts` follows `external_apply_url`/`source_url` with server-side `fetch(..., { redirect: "follow", cache: "no-store" })`, derives the root employer homepage, falls back to `https://www.{company}.com`, extracts the homepage plus max 3 prioritized internal pages, and then synthesizes the dossier with GPT-4o.
+- **13 — fallback guarantee:** Browser failures, thin homepage extraction, and invalid OpenAI JSON all degrade to a complete deterministic dossier from job/profile data. The agent still saves `jobs.company_research` unless the DB update itself fails.
+- **13 — CompanyResearch rendering:** `components/job-details/CompanyResearch.tsx` now renders all 9 dossier fields: overview, tech stack, culture, why this role, your edge, gaps to address, smart questions, interview prep, and sources.
+- **13 — CompanyResearch loading state:** Clicking Research Company now swaps the empty state for a multi-step loading card while `/api/agent/research` is in flight. The stepper advances locally every 6.5s through the actual workflow shape: resolve company site, read public pages, connect findings to the profile, and build the dossier. No API or agent changes.
+- **13 — lint compatibility fixes:** `components/find-jobs/JobFilters.tsx` updates debounce refs in `useEffect` instead of during render to satisfy React 19 lint rules. Login OAuth controls intentionally stay native `GET` forms, because the OAuth start endpoints are redirecting route handlers.
+- **13 — verification status:** `npx tsc --noEmit`, `npm run lint`, and `npm run build` pass. Full live click-through still requires a signed-in browser session plus `BROWSERBASE_API_KEY`, `BROWSERBASE_PROJECT_ID`, `OPENAI_API_KEY`, and PostHog env vars.
+- **13 — post-review fixes applied:** (a) company homepage resolution follows redirects manually with a timeout and public-host validation to avoid unsafe server-side fetches; (b) known ATS/job-board domains fall back to the company-name homepage instead of researching the platform; (c) malformed non-UUID `jobId` values now return 400; (d) dossier bullet-list sections now render visible markers.
+- **13 — Browserbase metadata fix:** Browserbase rejects some `userMetadata` values with spaces/special characters (for example company names like "nTech Solutions"). `lib/browserbase.ts` now slug-sanitizes metadata values before session creation so website browsing can start instead of falling back immediately.
+
+- **11 Filter + Sort + Pagination — URL search params pattern:** All filter/sort/pagination state lives in URL params (`?q=&match=&sort=&page=`). `FindJobsPage` (server component) reads them as an async `searchParams` prop (Next.js 15/16 requirement) and builds the InsForge query accordingly. No client-side fetch, no new API route.
+- **11 — InsForge query chain:** `select(..., { count: 'exact' })` returns both `data` and `count`. `.or('company.ilike.%q%,title.ilike.%q%')` handles text search. `.gte('match_score', MATCH_THRESHOLD)` / `.lt(...)` for match filter. `.order()` for sort. `.range(from, to)` for 20-per-page pagination (0-indexed inclusive).
+- **11 — Suspense required for useSearchParams:** `JobFilters` and `JobsPagination` both use `useSearchParams()`. In Next.js App Router, client components using this hook must be wrapped in `<Suspense>` in the parent server component — added to `page.tsx`.
+- **11 — Debounce pattern for text search:** `search` local state feeds a `useEffect` with a 500ms `setTimeout`. The timeout closure uses `useRef` copies of `router`, `pathname`, `searchParams` (updated each render before the effect) to avoid stale closures without adding them to the effect's dependency array. Dropdowns use synchronous `router.push()` in their `onChange` handlers.
+- **11 — Page window algorithm:** `JobsPagination` shows all pages if ≤7; otherwise shows first+last with current±1 and `…` gaps. Previous/Next are disabled at bounds.
+- **11 — MATCH_THRESHOLD reused:** High/Low match filter uses the same `MATCH_THRESHOLD = 70` constant from `lib/utils.ts` — not hardcoded.
+- **11 — post-review fixes applied:** (a) `parseInt` NaN guard added — `Number.isNaN(pageNum) ? 1 : Math.max(1, pageNum)` prevents NaN propagating through range/display calculations when `page` param is non-numeric; (b) `q` sanitized before `.or()` — `q.replace(/[,()%]/g, "").trim()` strips PostgREST-syntax characters (comma would break the OR-condition parser) and prevents wildcard injection via `%`; (c) `error` destructured from query result and logged with `[find-jobs/page]` prefix — previously silently discarded.
+- **11 — verification status:** `tsc --noEmit` passes. End-to-end (filter/sort/page URL updates → server re-fetch → updated table) requires OAuth configured in InsForge dashboard.
 
 ---
 

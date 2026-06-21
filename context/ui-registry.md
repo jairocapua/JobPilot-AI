@@ -117,6 +117,7 @@ Auth card always uses `rounded-2xl` (not `rounded-lg`). Cards on inner app pages
 
 ### OAuth Button — Secondary (Google-style)
 **File:** `app/(auth)/login/page.tsx`
+**Element:** Native `GET` form submit button to `/api/auth/oauth/google` (not `next/link`; OAuth start routes redirect and must use browser navigation).
 
 | Property | Class |
 | --- | --- |
@@ -125,11 +126,12 @@ Auth card always uses `rounded-2xl` (not `rounded-lg`). Cards on inner app pages
 | Text | `text-text-primary text-sm font-medium` |
 | Radius | `rounded-lg` |
 | Padding | `px-4 py-2.5` |
-| Layout | `inline-flex items-center justify-center gap-3` |
+| Layout | `inline-flex w-full items-center justify-center gap-3` |
 | Hover | `hover:bg-surface-secondary transition-colors` |
 
 ### OAuth Button — Primary dark (GitHub-style)
 **File:** `app/(auth)/login/page.tsx`
+**Element:** Native `GET` form submit button to `/api/auth/oauth/github` (not `next/link`; OAuth start routes redirect and must use browser navigation).
 
 | Property | Class |
 | --- | --- |
@@ -137,7 +139,7 @@ Auth card always uses `rounded-2xl` (not `rounded-lg`). Cards on inner app pages
 | Text | `text-overlay-foreground text-sm font-medium` |
 | Radius | `rounded-lg` |
 | Padding | `px-4 py-2.5` |
-| Layout | `inline-flex items-center justify-center gap-3` |
+| Layout | `inline-flex w-full items-center justify-center gap-3` |
 | Hover | `hover:opacity-90 transition-opacity` |
 
 **Pattern notes:**
@@ -224,22 +226,26 @@ save feedback: text-sm text-center below the button — success: text-success ("
 
 ### SearchControls
 **File:** `components/find-jobs/SearchControls.tsx`
-**Pattern:** White card, `rounded-xl`. Two flex inputs (JOB TITLE with search icon, LOCATION plain) + purple Find Jobs button, all aligned to `items-end`. Success banner below in `bg-success-lightest`. Client component — manages jobTitle/location state locally (not connected to API until Feature 10).
+**Pattern:** White card, `rounded-xl`. Two flex inputs (JOB TITLE with search icon, LOCATION plain) + purple Find Jobs button, all aligned to `items-end`. Posts to `/api/agent/find` on click; shows loading spinner during search; shows success banner or error banner below. On success calls `router.refresh()` to re-fetch the server component's job list. Client component with `useRouter`.
+**State:** `searching: boolean`, `result: { jobsFound, savedCount } | null`, `error: string | null`
 ```
 card: bg-surface border border-border rounded-xl p-6 shadow-sm
 label: text-xs font-medium text-text-secondary uppercase tracking-wide
 text input: pl-9 pr-3 py-2 border border-border rounded-md text-sm text-text-primary placeholder:text-text-muted focus:ring-1 focus:ring-accent bg-surface outline-none
 location input: px-3 py-2 (no left icon)
 search icon in input: absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted
-Find Jobs button: flex items-center gap-2 px-5 py-2 bg-accent text-accent-foreground text-sm font-medium rounded-md hover:opacity-90 transition-opacity
+Find Jobs button: flex items-center gap-2 px-5 py-2 bg-accent text-accent-foreground text-sm font-medium rounded-md hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed
+loading icon: Loader2 h-4 w-4 animate-spin (replaces Search icon during search)
 success banner: mt-4 px-4 py-2.5 bg-success-lightest rounded-lg flex items-center gap-2
 banner icon: h-4 w-4 text-success flex-shrink-0
 banner text: text-sm font-medium text-success-foreground
+error banner: mt-4 px-4 py-2.5 bg-error-lightest rounded-lg
+error text: text-sm font-medium text-error-foreground
 ```
 
 ### JobFilters
 **File:** `components/find-jobs/JobFilters.tsx`
-**Pattern:** Full-width flex row inside the jobs card; bottom border divides it from the table. Left: borderless search icon + plain input. Right: two native selects styled as outlined pills with ChevronDown overlay. Client component — local state only; not wired to table until Feature 11.
+**Pattern:** Full-width flex row inside the jobs card; bottom border divides it from the table. Left: borderless search icon + plain input. Right: two native selects styled as outlined pills with ChevronDown overlay. Client component — drives real data via URL search params. Wrapped in `<Suspense>` in page.tsx (required by `useSearchParams`).
 ```
 row: flex items-center gap-3 px-4 py-3 border-b border-border
 filter input: w-full pl-6 py-1 text-sm text-text-primary placeholder:text-text-muted focus:outline-none bg-transparent (no border)
@@ -247,10 +253,11 @@ filter icon: absolute left-0, h-4 w-4 text-text-muted
 select: appearance-none pl-3 pr-8 py-1.5 border border-border rounded-md text-sm text-text-primary bg-surface focus:outline-none focus:ring-1 focus:ring-accent
 select chevron: absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted pointer-events-none
 ```
+**URL params:** `?q=<text>&match=all|high|low&sort=score|newest|oldest`. Text search is debounced 500ms via `useEffect` + `useRef` pattern (refs keep router/pathname/searchParams stable in the timeout closure). Dropdowns push immediately. All changes delete `page` param to reset to page 1.
 
 ### JobsTable
 **File:** `components/find-jobs/JobsTable.tsx`
-**Pattern:** Client component — uses `useRouter` for row click navigation to `/find-jobs/[id]`. Accepts `jobs: Job[]` prop. Columns: COMPANY (icon + name), ROLE, MATCH SCORE (bar + %), SALARY EST., DATE FOUND. No alternating rows; hover is `bg-surface-secondary`.
+**Pattern:** Client component — uses `useRouter` for row click navigation to `/find-jobs/[id]`. Accepts `jobs: Job[]` prop. Columns: COMPANY (icon + name), ROLE, MATCH SCORE (bar + %), SALARY EST., DATE FOUND. No alternating rows; hover is `bg-surface-secondary`. Empty state shown when `jobs.length === 0`.
 ```
 table: w-full (inside overflow-x-auto wrapper)
 th: text-left text-xs font-medium text-text-secondary uppercase tracking-wide px-4 py-3 whitespace-nowrap
@@ -262,6 +269,7 @@ company name: text-sm font-medium text-text-primary
 role: text-sm text-text-primary
 salary: text-sm text-text-primary (fallback "—" when null)
 date: text-sm text-text-muted
+empty state: colSpan=5 td, py-12 text-center, text-sm text-text-muted
 ```
 **MatchScoreBar (inlined):** 
 ```
@@ -273,15 +281,98 @@ text: text-sm font-semibold — text-success (≥90), text-info-medium (≥80), 
 
 ### JobsPagination
 **File:** `components/find-jobs/JobsPagination.tsx`
-**Pattern:** Server component — pure props, no hooks. Flex row: "Showing X to Y of Z results" + "Jobs by Adzuna" credit on left; Previous/page numbers/Next on right. Active page has `bg-accent text-accent-foreground`. Feature 11 wires real navigation.
+**Pattern:** Client component — navigates via URL search params. Flex row: "Showing X to Y of Z results" + "Jobs by Adzuna" credit on left; Previous/page numbers/Next on right. Active page has `bg-accent text-accent-foreground`. Previous/Next disabled at bounds. Wrapped in `<Suspense>` in page.tsx.
 ```
 row: flex items-center justify-between px-4 py-3.5 border-t border-border
 results text: text-sm text-text-muted
 attribution: text-xs text-text-muted
-Previous/Next: px-3 py-1.5 text-sm text-text-secondary border border-border rounded-md hover:bg-surface-secondary
+Previous/Next: px-3 py-1.5 text-sm text-text-secondary border border-border rounded-md hover:bg-surface-secondary disabled:opacity-50 disabled:cursor-not-allowed
 page button (inactive): w-8 h-8 text-sm text-text-secondary rounded-md hover:bg-surface-secondary
 page button (active): w-8 h-8 text-sm bg-accent text-accent-foreground font-medium rounded-md
 ellipsis: text-sm text-text-muted px-1
+```
+**Page window logic:** ≤7 pages → show all. >7 pages → always show first+last, show current±1 with `…` gaps.
+
+### JobInfo
+**File:** `components/job-details/JobInfo.tsx`
+**Pattern:** Two stacked cards. Top card: company icon box + job title + company name + match badge + View Job Post button. Below: 4-column grid of info mini-cards (Salary, Location, Job Type, Date Found), each with icon, uppercase label, value.
+```
+header card: bg-surface border border-border rounded-xl shadow-sm p-6
+company icon box: w-10 h-10 rounded-lg bg-surface-tertiary border border-border
+job title: text-xl font-bold text-text-primary
+company name: text-sm text-text-secondary
+match badge (≥80): bg-success-lightest text-success-foreground text-xs font-medium px-2.5 py-0.5 rounded-full
+match badge (<80): bg-warning/10 text-warning text-xs font-medium px-2.5 py-0.5 rounded-full
+View Job Post btn: flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-text-primary border border-border rounded-md hover:bg-surface-secondary transition-colors
+info mini-card: bg-surface border border-border rounded-xl shadow-sm p-4
+info icon box: w-8 h-8 rounded-lg {color-specific-bg}
+info label: text-xs font-medium text-text-muted uppercase tracking-wide
+info value: text-sm font-medium text-text-primary truncate
+```
+**Match badge color note:** Header badge uses 2-level rule (≥80=green, else orange). Table bar uses 3-level rule (≥90/≥80/else). Different components — design is source of truth for each.
+
+### MatchScore
+**File:** `components/job-details/MatchScore.tsx`
+**Pattern:** Two separate cards. First: AI Match Reasoning — Sparkles icon + "AI MATCH REASONING" eyebrow + paragraph. Second: Required Skills — "REQUIRED SKILLS VS YOUR PROFILE" eyebrow; "You have" row (green pills with Check icon); divider; "You lack" row (orange pills with X icon).
+```
+card: bg-surface border border-border rounded-xl shadow-sm p-6
+section eyebrow: text-xs font-semibold text-text-secondary uppercase tracking-wide
+match reason text: text-sm text-text-primary leading-relaxed
+sub-label: text-xs font-medium text-text-muted mb-2
+matched skill pill: inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-success-lightest text-success-foreground
+missing skill pill: inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-warning/10 text-warning
+divider: border-t border-border
+```
+
+### JobDescription
+**File:** `components/job-details/JobDescription.tsx`
+**Pattern:** Single card. Briefcase icon + "Job Description" heading + description text. Returns null if `aboutRole` is null.
+```
+card: bg-surface border border-border rounded-xl shadow-sm p-6
+heading: text-base font-semibold text-text-primary
+description: text-sm text-text-primary leading-relaxed whitespace-pre-line
+```
+
+### CompanyResearch
+**File:** `components/job-details/CompanyResearch.tsx`
+**Last updated:** 2026-06-22
+**Pattern:** Client component. Single card. Header row: Building2 icon + "Company Research" title + Research Company button (only shown when `research === null`). Empty state: centered building icon box, "No research yet" text, description, optional error text. Completed state renders all dossier fields in compact stacked sections with top borders, tech stack pills, plain text lists, and small source links. Calls `POST /api/agent/research` with `{ jobId }` on button click; calls `router.refresh()` on success.
+```
+card: bg-surface border border-border rounded-xl shadow-sm p-6
+Research Company btn: flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-foreground text-sm font-medium rounded-md hover:opacity-90 transition-opacity disabled:opacity-50
+loading wrapper: py-2, aria-live polite, aria-busy true
+loading title: text-sm font-medium text-text-primary
+loading helper text: text-xs text-text-muted leading-relaxed
+loading step list: flex flex-col gap-3
+loading step row: flex gap-3
+loading step icon base: flex h-7 w-7 items-center justify-center rounded-full border
+loading step complete icon: border-success-light bg-success-lightest text-success
+loading step active icon: border-accent bg-accent-muted text-accent with Loader2 h-4 w-4 animate-spin
+loading step pending icon: border-border bg-surface-secondary text-text-muted with number text-xs font-semibold
+loading connector: mt-2 h-full min-h-6 w-px bg-border
+loading step title: text-sm font-medium text-text-primary
+loading step description: text-xs text-text-muted leading-relaxed
+empty state icon box: w-12 h-12 rounded-xl bg-surface-secondary border border-border
+empty state text: text-sm font-medium text-text-primary
+empty state sub-text: text-xs text-text-muted text-center max-w-xs leading-relaxed
+error text: text-sm text-error
+completed wrapper: flex flex-col gap-4
+overview/paragraph text: text-sm text-text-primary leading-relaxed
+dossier section: border-t border-border pt-4
+dossier section title: text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2
+dossier list: list-disc pl-5 space-y-2 marker:text-text-muted
+dossier list item: text-sm text-text-primary leading-relaxed
+tech stack pill: text-xs font-medium px-2.5 py-1 rounded-full bg-info-lightest text-info-foreground
+source link: inline-flex items-center gap-1.5 text-xs text-accent hover:opacity-80 transition-opacity break-all
+source fallback text: text-xs text-text-muted
+```
+**State pattern:** `researching` swaps the empty state for the loading stepper while `/api/agent/research` is in flight. `activeStep` resets on click and advances every 6.5s, capping at the final step because the backend does not stream real progress events. Steps describe the actual agent workflow: resolve company site, read public pages, connect findings to the profile, and build the dossier.
+
+### JobActions
+**File:** `components/job-details/JobActions.tsx`
+**Pattern:** Full-width purple anchor tag styled as button. Links to `externalApplyUrl` in new tab. Returns null if `applyUrl` is null.
+```
+button: block w-full py-3.5 bg-accent text-accent-foreground text-sm font-medium text-center rounded-xl hover:opacity-90 transition-opacity
 ```
 
 ---

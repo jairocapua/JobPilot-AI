@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-
+import { usePathname, useRouter } from "next/navigation";
 const NAV_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/find-jobs", label: "Find Jobs" },
@@ -11,6 +10,13 @@ const NAV_LINKS = [
 
 export function NavLinks() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+  }
+
   return (
     <nav className="flex items-center gap-8">
       {NAV_LINKS.map(({ href, label }) => (
@@ -26,6 +32,12 @@ export function NavLinks() {
           {label}
         </Link>
       ))}
+      <button
+        onClick={handleLogout}
+        className="text-sm font-medium text-text-dark hover:text-accent transition-colors"
+      >
+        Logout
+      </button>
     </nav>
   );
 }

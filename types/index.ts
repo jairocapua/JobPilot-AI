@@ -1,3 +1,32 @@
+export type CompanyResearchDossier = {
+  companyOverview: string;
+  techStack: string[];
+  culture: string[];
+  whyThisRole: string;
+  yourEdge: string[];
+  gapsToAddress: string[];
+  smartQuestions: string[];
+  interviewPrep: string[];
+  sources: string[];
+};
+
+export type JobDetail = {
+  id: string;
+  title: string;
+  company: string;
+  location: string | null;
+  salary: string | null;
+  jobType: string | null;
+  aboutRole: string | null;
+  matchScore: number;
+  matchReason: string | null;
+  matchedSkills: string[];
+  missingSkills: string[];
+  companyResearch: CompanyResearchDossier | null;
+  externalApplyUrl: string | null;
+  foundAt: string;
+};
+
 export type WorkExperience = {
   company: string;
   title: string;

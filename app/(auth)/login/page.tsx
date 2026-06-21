@@ -51,20 +51,24 @@ export default async function LoginPage({ searchParams }: Props) {
         )}
 
         <div className="flex flex-col gap-3">
-          <a
-            href="/api/auth/oauth/google"
-            className="inline-flex items-center justify-center gap-3 bg-surface border border-border text-text-primary text-sm font-medium px-4 py-2.5 rounded-lg hover:bg-surface-secondary transition-colors"
-          >
-            <GoogleIcon />
-            Continue with Google
-          </a>
-          <a
-            href="/api/auth/oauth/github"
-            className="inline-flex items-center justify-center gap-3 bg-overlay-dark text-overlay-foreground text-sm font-medium px-4 py-2.5 rounded-lg hover:opacity-90 transition-opacity"
-          >
-            <GitHubIcon />
-            Continue with GitHub
-          </a>
+          <form action="/api/auth/oauth/google" method="GET">
+            <button
+              type="submit"
+              className="inline-flex w-full items-center justify-center gap-3 bg-surface border border-border text-text-primary text-sm font-medium px-4 py-2.5 rounded-lg hover:bg-surface-secondary transition-colors"
+            >
+              <GoogleIcon />
+              Continue with Google
+            </button>
+          </form>
+          <form action="/api/auth/oauth/github" method="GET">
+            <button
+              type="submit"
+              className="inline-flex w-full items-center justify-center gap-3 bg-overlay-dark text-overlay-foreground text-sm font-medium px-4 py-2.5 rounded-lg hover:opacity-90 transition-opacity"
+            >
+              <GitHubIcon />
+              Continue with GitHub
+            </button>
+          </form>
         </div>
 
         <p className="text-xs text-text-muted mt-8 leading-relaxed">

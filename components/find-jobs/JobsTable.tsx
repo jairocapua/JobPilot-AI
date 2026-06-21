@@ -45,34 +45,42 @@ export function JobsTable({ jobs }: Props) {
           </tr>
         </thead>
         <tbody>
-          {jobs.map((job) => (
-            <tr
-              key={job.id}
-              onClick={() => router.push(`/find-jobs/${job.id}`)}
-              className="border-b border-border last:border-0 hover:bg-surface-secondary transition-colors cursor-pointer"
-            >
-              <td className="px-4 py-3.5">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-md bg-surface-tertiary border border-border flex items-center justify-center flex-shrink-0">
-                    <Building2 className="h-4 w-4 text-text-muted" />
-                  </div>
-                  <span className="text-sm font-medium text-text-primary">{job.company}</span>
-                </div>
-              </td>
-              <td className="px-4 py-3.5">
-                <span className="text-sm text-text-primary">{job.title}</span>
-              </td>
-              <td className="px-4 py-3.5">
-                <MatchScoreBar score={job.matchScore} />
-              </td>
-              <td className="px-4 py-3.5">
-                <span className="text-sm text-text-primary">{job.salary ?? "—"}</span>
-              </td>
-              <td className="px-4 py-3.5">
-                <span className="text-sm text-text-muted">{job.foundAt}</span>
+          {jobs.length === 0 ? (
+            <tr>
+              <td colSpan={5} className="px-4 py-12 text-center">
+                <p className="text-sm text-text-muted">No jobs match your current filters.</p>
               </td>
             </tr>
-          ))}
+          ) : (
+            jobs.map((job) => (
+              <tr
+                key={job.id}
+                onClick={() => router.push(`/find-jobs/${job.id}`)}
+                className="border-b border-border last:border-0 hover:bg-surface-secondary transition-colors cursor-pointer"
+              >
+                <td className="px-4 py-3.5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-md bg-surface-tertiary border border-border flex items-center justify-center flex-shrink-0">
+                      <Building2 className="h-4 w-4 text-text-muted" />
+                    </div>
+                    <span className="text-sm font-medium text-text-primary">{job.company}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-3.5">
+                  <span className="text-sm text-text-primary">{job.title}</span>
+                </td>
+                <td className="px-4 py-3.5">
+                  <MatchScoreBar score={job.matchScore} />
+                </td>
+                <td className="px-4 py-3.5">
+                  <span className="text-sm text-text-primary">{job.salary ?? "—"}</span>
+                </td>
+                <td className="px-4 py-3.5">
+                  <span className="text-sm text-text-muted">{job.foundAt}</span>
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>

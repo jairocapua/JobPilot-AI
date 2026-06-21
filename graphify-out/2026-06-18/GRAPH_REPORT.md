@@ -1,18 +1,12 @@
-# Graph Report - job_pilot_ai  (2026-06-18)
+# Graph Report - .  (2026-06-16)
 
 ## Corpus Check
-- 63 files · ~836,517 words
-- Verdict: corpus is large enough that graph structure adds value.
+- Large corpus: 64 files · ~828,826 words. Semantic extraction will be expensive (many Claude tokens). Consider running on a subfolder.
 
 ## Summary
-- 689 nodes · 883 edges · 53 communities (41 shown, 12 thin omitted)
-- Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 81 edges (avg confidence: 0.85)
-- Token cost: 0 input · 0 output
-
-## Graph Freshness
-- Built from commit: `975512ba`
-- Run `git rev-parse HEAD` and compare to check if the graph is stale.
-- Run `graphify update .` after code changes (no API cost).
+- 322 nodes · 402 edges · 44 communities (25 shown, 19 thin omitted)
+- Extraction: 80% EXTRACTED · 20% INFERRED · 0% AMBIGUOUS · INFERRED: 81 edges (avg confidence: 0.85)
+- Token cost: 21,762 input · 9,320 output
 
 ## Community Hubs (Navigation)
 - [[_COMMUNITY_AI Agent Architecture|AI Agent Architecture]]
@@ -58,38 +52,30 @@
 - [[_COMMUNITY_Singleton Node|Singleton Node]]
 - [[_COMMUNITY_Singleton Node|Singleton Node]]
 - [[_COMMUNITY_Singleton Node|Singleton Node]]
-- [[_COMMUNITY_Singleton Node|Singleton Node]]
-- [[_COMMUNITY_Community 44|Community 44]]
-- [[_COMMUNITY_Community 45|Community 45]]
-- [[_COMMUNITY_Community 46|Community 46]]
-- [[_COMMUNITY_Community 47|Community 47]]
-- [[_COMMUNITY_Community 48|Community 48]]
-- [[_COMMUNITY_Community 49|Community 49]]
-- [[_COMMUNITY_Community 50|Community 50]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `Components` - 21 edges
-2. `createInsforgeServer()` - 20 edges
-3. `Code Standards` - 17 edges
-4. `compilerOptions` - 16 edges
-5. `UI Rules` - 14 edges
-6. `Architecture` - 13 edges
-7. `Project Overview` - 12 edges
-8. `Library Docs` - 11 edges
-9. `Core User Flow` - 11 edges
-10. `Jobs List UI - Match Score Table` - 11 edges
+1. `Jobs List UI - Match Score Table` - 11 edges
+2. `Technology Stack` - 9 edges
+3. `Library Docs Document` - 9 edges
+4. `Landing Page Overall Layout` - 9 edges
+5. `Home` - 8 edges
+6. `Context Files Reading Order` - 8 edges
+7. `OpenAI GPT-4o Model` - 8 edges
+8. `Code Standards Document` - 8 edges
+9. `UI Registry Document` - 8 edges
+10. `Job Details Page UI` - 8 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Progress Tracker Document` --semantically_similar_to--> `Memory Session Document`  [INFERRED] [semantically similar]
   context/progress-tracker.md → memory.md
-- `FindJobsPage()` --calls--> `createInsforgeServer()`  [EXTRACTED]
-  app/find-jobs/page.tsx → lib/insforge-server.ts
-- `proxy middleware function` --conceptually_related_to--> `PKCE_COOKIE constant`  [INFERRED]
-  proxy.ts → lib/auth-constants.ts
-- `saveProfile()` --calls--> `createInsforgeServer()`  [EXTRACTED]
-  actions/profile.ts → lib/insforge-server.ts
-- `saveResumeUrl()` --calls--> `createInsforgeServer()`  [EXTRACTED]
-  actions/profile.ts → lib/insforge-server.ts
+- `Home` --calls--> `CTASection`  [EXTRACTED]
+  app/page.tsx → components/homepage/CTASection.tsx
+- `Home` --calls--> `Features`  [EXTRACTED]
+  app/page.tsx → components/homepage/Features.tsx
+- `Home` --calls--> `Footer`  [EXTRACTED]
+  app/page.tsx → components/layout/Footer.tsx
+- `Home` --calls--> `Hero`  [EXTRACTED]
+  app/page.tsx → components/homepage/Hero.tsx
 
 ## Import Cycles
 - None detected.
@@ -111,15 +97,15 @@
 - **** — designs_band_features_1_recent_activity_panel, designs_band_features_1_company_research_chart, designs_band_features_1_stats_cards [EXTRACTED 1.00]
 - **** — designs_band_features_1_navbar, designs_band_features_1_find_jobs_nav, designs_band_features_1_profile_nav [EXTRACTED 1.00]
 
-## Communities (53 total, 12 thin omitted)
+## Communities (44 total, 19 thin omitted)
 
 ### Community 0 - "AI Agent Architecture"
-Cohesion: 0.07
-Nodes (43): Adzuna Job Discovery API, OAuth Authentication Flow, Browserbase Cloud Browser, Agent Operations Data Flow, Company Research Data Flow, OpenAI GPT-4o Model, InsForge Backend, InsForge Client Pattern (+35 more)
+Cohesion: 0.08
+Nodes (35): Adzuna Job Discovery API, Browserbase Cloud Browser, Agent Operations Data Flow, Company Research Data Flow, OpenAI GPT-4o Model, InsForge Backend, InsForge Client Pattern, Next.js 16 App Router (+27 more)
 
 ### Community 1 - "Project Config & Guidelines"
-Cohesion: 0.06
-Nodes (31): Available Skills, InsForge Project Jairo_JobPilot, InsForge SDK Overview, Agent Invariant Rules, Next.js Breaking Changes Rule, Context Files Reading Order, Read Before Anything Else, Rules That Never Change (+23 more)
+Cohesion: 0.07
+Nodes (28): InsForge Project Jairo_JobPilot, InsForge SDK Overview, Agent Invariant Rules, Next.js Breaking Changes Rule, Context Files Reading Order, Agent Logs Table, Agent Runs Table, OAuth Authentication Flow (+20 more)
 
 ### Community 2 - "Landing Page Design System"
 Cohesion: 0.14
@@ -130,16 +116,16 @@ Cohesion: 0.18
 Nodes (18): Add Job Link (Work Experience), Profile Completion Progress Ring (70%), Profile Completion Tab Links (Phone, Location, Education), Education Section, Generate Resume from Profile Button, Job Preferences Section, Profile Page Navbar, Personal Info Subsection (+10 more)
 
 ### Community 4 - "Build Plan & Progress Tracking"
-Cohesion: 0.33
-Nodes (9): CompletionIndicator Component Pattern, UI Registry Document, Footer Component Pattern, Hero Component Pattern, Navbar Component Pattern, NavLinks Component Pattern, ProfileForm Component Pattern, ResumeUpload Component Pattern (+1 more)
+Cohesion: 0.18
+Nodes (15): Phase 2 Profile Page, Current Build Status Phase 2, Progress Tracker Document, CompletionIndicator Component Pattern, UI Registry Document, Footer Component Pattern, Hero Component Pattern, Navbar Component Pattern (+7 more)
 
 ### Community 5 - "Auth & App Shell"
-Cohesion: 0.12
-Nodes (19): extractProfileFromPdf(), GET(), Auth Cookies Management, OAuth PKCE Flow, POST(), PKCE_COOKIE constant, createInsforgeServer(), ERROR_MESSAGES (+11 more)
+Cohesion: 0.18
+Nodes (14): RootLayout, PostHogProvider, GET, Auth Cookies Management, InsForge Server Client, OAuth PKCE Flow, PostHog Analytics Integration, GitHubIcon (+6 more)
 
 ### Community 6 - "Homepage & Profile Components"
-Cohesion: 0.11
-Nodes (19): Home(), Features, CTASection(), Props, Feature, features, Hero(), Props (+11 more)
+Cohesion: 0.18
+Nodes (14): Home, CompletionIndicator, ProfileData Type, Features, CTASection, Hero, Testimonial, HowItWorks (+6 more)
 
 ### Community 7 - "Dashboard UI Design"
 Cohesion: 0.23
@@ -150,8 +136,8 @@ Cohesion: 0.31
 Nodes (13): Company Column, Job Card - Figma (85% match, $170k-$220k, URL), Job Card - Linear (96% match, $150k-$190k, LinkedIn), Job Card - Notion (72% match, $130k-$170k, LinkedIn), Job Card - OpenAI (91% match, $200k-$280k, LinkedIn), Job Card - Stripe (88% match, $180k-$240k, URL), Job Card - Vercel (94% match, $160k-$200k, LinkedIn), Jobs List UI - Match Score Table (+5 more)
 
 ### Community 9 - "InsForge Client & Auth Config"
-Cohesion: 0.08
-Nodes (25): inter, metadata, RootLayout(), PostHogProvider(), InsForge Server Client, PostHog Analytics Integration, createBrowserClient (SSR), insforge (+17 more)
+Cohesion: 0.20
+Nodes (12): PKCE_COOKIE constant, createBrowserClient (SSR), insforge browser client, createInsforgeServer function, createServerClient (SSR), InsForge API Base URL (whehy4wh.ap-southeast.insforge.app), InsForge MCP Server Config, @insforge/sdk dependency (+4 more)
 
 ### Community 10 - "Feature Band 1 Design"
 Cohesion: 0.24
@@ -198,8 +184,8 @@ Cohesion: 0.60
 Nodes (6): Application Tracker Feature Block, Code Terminal Preview Block, Apply With More Confidence Heading, JobPilot Agent Log Terminal UI, Band Testimonial Section, Two Column Layout Pattern
 
 ### Community 21 - "Analytics (PostHog)"
-Cohesion: 0.07
-Nodes (29): dependencies, @insforge/sdk, lucide-react, next, openai, pdf-parse, posthog-js, posthog-node (+21 more)
+Cohesion: 0.33
+Nodes (6): initPostHog function, posthog browser instance, resetPostHog function, createPostHogServer function, posthog-js dependency, posthog-node dependency
 
 ### Community 22 - "Project Config Files"
 Cohesion: 0.67
@@ -209,85 +195,25 @@ Nodes (3): Next.js Config, Project Dependencies (package.json), TypeScript Confi
 Cohesion: 1.00
 Nodes (3): JobPilot (App Name), JobPilot Brand Logo, JobPilot App Icon (Grid/Dashboard Symbol)
 
-### Community 27 - "Singleton Node"
-Cohesion: 0.07
-Nodes (26): Adzuna API, Auth, Before Using Any Library, Browserbase, Client Setup (Browser), Client vs Server, Company Research Pattern, Company Research Section (+18 more)
-
-### Community 28 - "Singleton Node"
-Cohesion: 0.07
-Nodes (26): 01 Homepage, 02 Auth, 03 PostHog Initialization, 04 Database Schema, 05 Profile Page — Full UI, 06 Profile Save Logic, 07 AI Profile Extraction from Resume, 08 Resume PDF Generation from Profile (+18 more)
-
-### Community 30 - "Singleton Node"
-Cohesion: 0.07
-Nodes (26): CompletionIndicator, Components, `.cta-gradient`, CTASection, Features, Footer, Global CSS Classes, Hero (+18 more)
-
-### Community 31 - "Singleton Node"
-Cohesion: 0.08
-Nodes (25): `agent_logs`, Agent Logs Table, Agent Operations (API Routes), `agent_runs`, Agent Runs Table, Architecture, Authentication, Browserbase Session Pattern (+17 more)
-
-### Community 32 - "Singleton Node"
-Cohesion: 0.07
-Nodes (38): saveProfile(), SaveResult, saveResumeUrl(), openai, RawExtracted, VALID_EXPERIENCE_LEVELS, AiContent, generateAiContent() (+30 more)
-
-### Community 35 - "Singleton Node"
-Cohesion: 0.08
-Nodes (23): About the Project, Company Research Data, Company Research Flow, Core User Flow, Dashboard, Data Architecture, Features In Scope, Features Out of Scope (+15 more)
-
-### Community 36 - "Singleton Node"
-Cohesion: 0.50
-Nodes (4): config, isProtected(), PROTECTED_ROUTES, proxy()
-
-### Community 38 - "Singleton Node"
-Cohesion: 0.10
-Nodes (19): Badges, Buttons, Cards, Do Nots, Empty States, Font, Form Inputs, Layout (+11 more)
-
-### Community 41 - "Singleton Node"
-Cohesion: 0.10
-Nodes (19): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModules, jsx, lib, module (+11 more)
-
-### Community 42 - "Singleton Node"
-Cohesion: 0.12
-Nodes (16): Always SDK for Application Logic:, 🚨 CRITICAL: Always Fetch Documentation Before Writing Code, 🚨 CRITICAL: Follow these steps in order, Getting Detailed Documentation, Important Notes, InsForge backend, InsForge SDK Documentation - Overview, Installation (+8 more)
-
-### Community 43 - "Singleton Node"
-Cohesion: 0.17
-Nodes (11): JobFilters(), JobsPagination(), Props, getScoreColors(), JobsTable(), MatchScoreBar(), Props, FindJobsPage() (+3 more)
-
-### Community 44 - "Community 44"
-Cohesion: 0.18
-Nodes (10): Current Status, Decisions Made During Build, Notes, Phase 1 — Foundation, Phase 2 — Profile Page, Phase 3 — Find Jobs Page, Phase 4 — Job Details Page, Phase 5 — Dashboard (+2 more)
-
-### Community 45 - "Community 45"
-Cohesion: 0.25
-Nodes (7): Current state, Decisions made, Memory — Feature 07 AI Profile Extraction from Resume (complete), Next session starts with, Open questions, Problems solved, What was built
-
-### Community 46 - "Community 46"
-Cohesion: 0.33
-Nodes (5): API_BASE_URL, API_KEY, cmd, insforge, @insforge/mcp
-
-### Community 47 - "Community 47"
-Cohesion: 0.50
-Nodes (3): Deploy on Vercel, Getting Started, Learn More
-
 ## Knowledge Gaps
-- **312 isolated node(s):** `cmd`, `@insforge/mcp`, `API_KEY`, `API_BASE_URL`, `openai` (+307 more)
+- **100 isolated node(s):** `GET`, `Testimonial`, `Footer`, `NavLinks`, `ResumeUpload` (+95 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **12 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **19 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Context Files Reading Order` connect `Project Config & Guidelines` to `AI Agent Architecture`, `Build Plan & Progress Tracking`, `Singleton Node`?**
-  _High betweenness centrality (0.038) - this node is a cross-community bridge._
-- **Why does `Code Standards Document` connect `Project Config & Guidelines` to `AI Agent Architecture`, `Singleton Node`?**
-  _High betweenness centrality (0.026) - this node is a cross-community bridge._
-- **Why does `createInsforgeServer()` connect `Auth & App Shell` to `Singleton Node`, `Singleton Node`, `Homepage & Profile Components`?**
-  _High betweenness centrality (0.018) - this node is a cross-community bridge._
-- **What connects `cmd`, `@insforge/mcp`, `API_KEY` to the rest of the system?**
-  _319 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Why does `Context Files Reading Order` connect `Project Config & Guidelines` to `AI Agent Architecture`, `Build Plan & Progress Tracking`?**
+  _High betweenness centrality (0.035) - this node is a cross-community bridge._
+- **Why does `Code Standards Document` connect `Project Config & Guidelines` to `AI Agent Architecture`?**
+  _High betweenness centrality (0.016) - this node is a cross-community bridge._
+- **Why does `Architecture Document` connect `Project Config & Guidelines` to `AI Agent Architecture`?**
+  _High betweenness centrality (0.015) - this node is a cross-community bridge._
+- **Are the 2 inferred relationships involving `Landing Page Overall Layout` (e.g. with `Color Scheme - Dark Navy / Purple Gradient with White Text` and `Typography - Large Bold Headlines with Subtitle Body Text`) actually correct?**
+  _`Landing Page Overall Layout` has 2 INFERRED edges - model-reasoned connections that need verification._
+- **What connects `GET`, `Testimonial`, `Footer` to the rest of the system?**
+  _109 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `AI Agent Architecture` be split into smaller, more focused modules?**
-  _Cohesion score 0.06755260243632337 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08403361344537816 - nodes in this community are weakly interconnected._
 - **Should `Project Config & Guidelines` be split into smaller, more focused modules?**
-  _Cohesion score 0.06060606060606061 - nodes in this community are weakly interconnected._
-- **Should `Landing Page Design System` be split into smaller, more focused modules?**
-  _Cohesion score 0.14210526315789473 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07142857142857142 - nodes in this community are weakly interconnected._

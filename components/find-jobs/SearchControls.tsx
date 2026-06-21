@@ -1,11 +1,51 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Search, Sparkles, Loader2 } from "lucide-react";
 
 export function SearchControls() {
+  const router = useRouter();
   const [jobTitle, setJobTitle] = useState("");
   const [location, setLocation] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [result, setResult] = useState<{
+    jobsFound: number;
+    savedCount: number;
+  } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSearch() {
+    if (searching || !jobTitle.trim()) return;
+    setSearching(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const res = await fetch("/api/agent/find", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobTitle: jobTitle.trim(), location: location.trim() }),
+      });
+      const json = (await res.json()) as {
+        success: boolean;
+        jobsFound?: number;
+        savedCount?: number;
+        error?: string;
+      };
+
+      if (!json.success) {
+        setError(json.error ?? "Search failed. Please try again.");
+      } else {
+        setResult({ jobsFound: json.jobsFound ?? 0, savedCount: json.savedCount ?? 0 });
+        router.refresh();
+      }
+    } catch {
+      setError("Search failed. Please try again.");
+    } finally {
+      setSearching(false);
+    }
+  }
 
   return (
     <div className="bg-surface border border-border rounded-xl p-6 shadow-sm">
@@ -20,6 +60,7 @@ export function SearchControls() {
               type="text"
               value={jobTitle}
               onChange={(e) => setJobTitle(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
               placeholder="Frontend Engineer"
               className="w-full pl-9 pr-3 py-2 border border-border rounded-md text-sm text-text-primary placeholder:text-text-muted focus:ring-1 focus:ring-accent focus:border-accent bg-surface outline-none"
             />
@@ -33,25 +74,40 @@ export function SearchControls() {
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             placeholder="Remote, New York..."
             className="w-full px-3 py-2 border border-border rounded-md text-sm text-text-primary placeholder:text-text-muted focus:ring-1 focus:ring-accent focus:border-accent bg-surface outline-none"
           />
         </div>
         <button
           type="button"
-          className="flex items-center gap-2 px-5 py-2 bg-accent text-accent-foreground text-sm font-medium rounded-md hover:opacity-90 transition-opacity whitespace-nowrap"
+          onClick={handleSearch}
+          disabled={searching || !jobTitle.trim()}
+          className="flex items-center gap-2 px-5 py-2 bg-accent text-accent-foreground text-sm font-medium rounded-md hover:opacity-90 transition-opacity whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Search className="h-4 w-4" />
-          Find Jobs
+          {searching ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Search className="h-4 w-4" />
+          )}
+          {searching ? "Searching..." : "Find Jobs"}
         </button>
       </div>
-      {/* Mock success state — driven by real search results in Feature 10 */}
-      <div className="mt-4 px-4 py-2.5 bg-success-lightest rounded-lg flex items-center gap-2">
-        <Sparkles className="h-4 w-4 text-success flex-shrink-0" />
-        <p className="text-sm font-medium text-success-foreground">
-          Found 8 jobs and saved 4 strong matches.
-        </p>
-      </div>
+
+      {result && (
+        <div className="mt-4 px-4 py-2.5 bg-success-lightest rounded-lg flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-success flex-shrink-0" />
+          <p className="text-sm font-medium text-success-foreground">
+            Found {result.jobsFound} jobs and saved {result.savedCount} strong matches.
+          </p>
+        </div>
+      )}
+
+      {error && (
+        <div className="mt-4 px-4 py-2.5 bg-error-lightest rounded-lg">
+          <p className="text-sm font-medium text-error-foreground">{error}</p>
+        </div>
+      )}
     </div>
   );
 }
