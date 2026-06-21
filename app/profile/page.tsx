@@ -32,7 +32,7 @@ export default async function ProfilePage() {
 
   return (
     <>
-      <Navbar showCta={false} />
+      <Navbar showCta={false} showLogout />
       <main className="min-h-screen bg-background">
         <div className="max-w-[1440px] mx-auto px-8 py-8">
           <div className="max-w-[800px] mx-auto flex flex-col gap-6">

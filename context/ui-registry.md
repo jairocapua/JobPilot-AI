@@ -147,17 +147,96 @@ Dark buttons always use `hover:opacity-90 transition-opacity` (not `hover:bg-*`)
 
 ### NavLinks (Active Nav)
 **File:** `components/layout/NavLinks.tsx`
-**Pattern:** Client component (`"use client"`) using `usePathname` to detect the active route. Imported by `Navbar`.
+**Last updated:** 2026-06-22
+**Pattern:** Client component (`"use client"`) using `usePathname` to detect the active route. Imported by `Navbar`. Updated to match the Feature 14 dashboard design: icon + label nav items with an accent underline on the active route.
 ```
-active link: text-accent
-inactive link: text-text-dark hover:text-accent transition-colors
-font: text-sm font-medium
-gap between links: gap-8
+nav: flex h-full items-center gap-7
+link: relative flex h-16 items-center gap-2 text-sm font-medium transition-colors
+icon: h-4 w-4
+active link: text-accent + absolute bottom underline inset-x-0 h-0.5 rounded-full bg-accent
+inactive link: text-text-dark hover:text-accent
 ```
 
 ### Navbar (App Pages)
 **File:** `components/layout/Navbar.tsx` (updated)
-**Pattern:** Same as before but now uses `NavLinks` for active state. Accepts `showCta?: boolean` (default true). Pass `showCta={false}` on authenticated app pages to hide the "Start for free" CTA. A `div.w-24` spacer keeps the logo centered when CTA is hidden.
+**Last updated:** 2026-06-22
+**Pattern:** Full-width white header using `NavLinks` for active state. Accepts `showCta?: boolean` (default true) and `showLogout?: boolean` (default false). Pass `showCta={false} showLogout` on authenticated app pages to hide the "Start for free" CTA and show the session action. App pages align the nav to the right, matching the dashboard design reference.
+```
+header: w-full bg-surface border-b border-border
+inner: max-w-[1440px] mx-auto h-16 flex items-center justify-between px-6
+logo: Image h-7 w-auto
+right cluster: flex h-full items-center gap-8
+cta button: bg-overlay-dark text-overlay-foreground text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity
+```
+
+### LogoutButton
+**File:** `components/layout/LogoutButton.tsx`
+**Last updated:** 2026-06-22
+**Pattern:** Authenticated navbar account action. Secondary outlined button with LogOut icon, loading spinner during sign-out, and compact retry state if logout fails.
+
+| Property | Class |
+| --- | --- |
+| Wrapper | `flex items-center gap-2` |
+| Background | `bg-surface` |
+| Border | `border border-border` |
+| Text | `text-sm font-medium text-text-secondary` |
+| Radius | `rounded-md` |
+| Spacing | `px-3 py-2 gap-2` |
+| Hover | `hover:bg-surface-secondary hover:text-text-primary transition-colors` |
+| Disabled | `disabled:cursor-not-allowed disabled:opacity-60` |
+| Error text | `text-xs text-error` |
+| Icons | `h-4 w-4` |
+
+**Pattern notes:**
+Logout is not a primary nav item. Keep it outside `NavLinks`, at the far right of the authenticated navbar cluster. The button clears InsForge browser state, calls `/api/auth/logout` to expire SSR cookies, resets PostHog, and redirects to `/login`.
+
+### Dashboard StatsBar
+**File:** `components/dashboard/StatsBar.tsx`
+**Last updated:** 2026-06-22
+**Pattern:** Four equal stat cards with mock dashboard numbers and compact trend badges.
+```
+grid: grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4
+card: min-h-32 rounded-xl border border-border bg-surface p-6 shadow-sm
+label: text-sm font-semibold text-text-secondary
+value: text-[30px] font-semibold leading-9 text-text-primary
+trend badge: rounded-sm bg-success-lightest px-2 py-0.5 text-xs font-medium text-success-darker
+helper text: text-xs text-text-muted
+```
+
+### Dashboard RecentActivity
+**File:** `components/dashboard/RecentActivity.tsx`
+**Last updated:** 2026-06-22
+**Pattern:** White card with bordered header and vertical timeline list using tokenized colored dots.
+```
+card: rounded-xl border border-border bg-surface shadow-sm
+header: border-b border-border px-6 py-6
+title: text-base font-semibold text-text-primary
+body: px-6 py-7
+row: flex gap-5
+activity text: text-sm font-semibold text-text-primary
+timestamp: mt-1 text-xs text-text-muted
+timeline line: mt-2 h-11 w-px bg-border
+dot outer: h-4 w-4 rounded-full border-2 border-surface
+dot variants: bg-accent-light/bg-accent, bg-info-light/bg-info, bg-success-light/bg-success-alt
+```
+
+### Dashboard AnalyticsCharts
+**File:** `components/dashboard/AnalyticsCharts.tsx`
+**Last updated:** 2026-06-22
+**Pattern:** Mock SVG charts matching the dashboard design: top chart pairs with Recent Activity, lower row uses a wide line chart and compact distribution chart.
+```
+chart card: rounded-xl border border-border bg-surface p-6 shadow-sm
+chart title: text-base font-semibold text-text-primary
+top grid: grid gap-6 lg:grid-cols-2
+bottom grid: grid gap-6 lg:grid-cols-[2fr_1fr]
+axis labels: fill-text-muted text-xs
+grid lines: stroke var(--color-border) with strokeDasharray 4 4
+company research bars: fill var(--color-info)
+jobs line: stroke var(--color-accent), strokeWidth 3, gradient fill from var(--color-accent)
+distribution bars: fill var(--color-success)
+```
+**Pattern notes:**
+Feature 14 uses lightweight SVG/CSS charts with mock data instead of adding a chart dependency. Feature 17 can preserve the chart card shells and replace only the data/rendering layer when PostHog analytics are wired.
 
 ### CompletionIndicator
 **File:** `components/profile/CompletionIndicator.tsx`
@@ -394,6 +473,15 @@ button: block w-full py-3.5 bg-accent text-accent-foreground text-sm font-medium
 ---
 
 ## Global CSS Classes
+
+### Button Cursor
+**File:** `app/globals.css`
+**Last updated:** 2026-06-22
+**Pattern:** Enabled native buttons and `role="button"` controls use a pointer cursor globally; disabled button-like controls use not-allowed.
+```
+button:not(:disabled), [role="button"]:not([aria-disabled="true"]): cursor: pointer
+button:disabled, [aria-disabled="true"]: cursor: not-allowed
+```
 
 ### `.hero-gradient`
 Multi-stop radial gradient using accent-muted, info-lightest, accent-light tokens over white surface. Used in Hero and nowhere else.

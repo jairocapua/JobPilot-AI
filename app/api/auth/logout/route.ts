@@ -1,28 +1,18 @@
-import { NextResponse, type NextRequest } from "next/server";
-import {
-  DEFAULT_ACCESS_TOKEN_COOKIE,
-  DEFAULT_REFRESH_TOKEN_COOKIE,
-} from "@insforge/sdk/ssr";
-import { createInsforgeServer } from "@/lib/insforge-server";
+import { NextResponse } from "next/server";
+import { clearAuthCookies } from "@insforge/sdk/ssr";
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  const { origin } = request.nextUrl;
-
+export async function POST(): Promise<NextResponse> {
   try {
-    const insforge = await createInsforgeServer();
-    await insforge.auth.signOut();
+    const response = NextResponse.json({ success: true });
+    clearAuthCookies(response.cookies);
+    return response;
   } catch (error) {
-    console.error("[api/auth/logout]", error);
+    console.error("[auth/logout]", error);
+    const response = NextResponse.json(
+      { success: false, error: "Failed to log out" },
+      { status: 500 },
+    );
+    clearAuthCookies(response.cookies);
+    return response;
   }
-
-  const response = NextResponse.redirect(new URL("/login", origin));
-  response.cookies.set(DEFAULT_ACCESS_TOKEN_COOKIE, "", {
-    path: "/",
-    maxAge: 0,
-  });
-  response.cookies.set(DEFAULT_REFRESH_TOKEN_COOKIE, "", {
-    path: "/",
-    maxAge: 0,
-  });
-  return response;
 }

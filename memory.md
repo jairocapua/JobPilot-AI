@@ -1,65 +1,58 @@
-# Memory — Feature 11 Filter + Sort + Pagination (complete)
+# Memory — Feature 14 Dashboard Page UI (complete)
 
-Last updated: 2026-06-18
+Last updated: 2026-06-22 03:38 +08:00
 
 ## What was built
 
-**Feature 11 — Filter + Sort + Pagination (complete, all post-review fixes applied):**
+**Feature 14 — Dashboard Page Full UI is complete, including post-review fix.**
 
-- `app/find-jobs/page.tsx` — now accepts `searchParams` as async prop (Next.js 15/16 requirement). Reads `q`, `match`, `sort`, `page` from URL. Builds InsForge query with `.or()` for text search, `.gte`/`.lt` for match filter, `.order()` for sort, `.range()` + `{ count: 'exact' }` for 20-per-page pagination. `q` is sanitized (`replace(/[,()%]/g, "")`) before use in `.or()`. `error` from query destructured and logged. `NaN` guard on `page` param.
-- `components/find-jobs/JobFilters.tsx` — rewritten from local state to URL search params. Text search debounced 500ms via `useEffect` + `useRef` pattern (refs keep `router`/`pathname`/`searchParams` current in timeout closure). Dropdowns push immediately. All changes delete `page` to reset to page 1. Wrapped in `<Suspense>` in page.tsx.
-- `components/find-jobs/JobsPagination.tsx` — rewritten as real client component navigating via URL params. Smart page window (≤7 → show all; >7 → first+last+current±1 with `…` gaps). Previous/Next disabled at bounds. Wrapped in `<Suspense>` in page.tsx.
-- `components/find-jobs/JobsTable.tsx` — empty state added (`colSpan={5}`, `py-12 text-center`, `text-sm text-text-muted`) for when filters return zero results.
-- `context/progress-tracker.md` — Feature 11 marked complete with all decisions and post-review fixes logged.
-- `context/ui-registry.md` — `JobFilters`, `JobsTable`, `JobsPagination` entries updated to reflect URL-driven behavior and empty state.
-
----
+- `app/dashboard/page.tsx` created. It is a protected Server Component page using `createInsforgeServer()` + `auth.getCurrentUser()` and redirects unauthenticated users to `/login`.
+- `components/dashboard/StatsBar.tsx` created with four mock stat cards: Total Jobs Found, Avg. Match Rate, Companies Researched, Jobs This Week.
+- `components/dashboard/RecentActivity.tsx` created with the mock activity timeline from `context/designs/dashboard.png`.
+- `components/dashboard/AnalyticsCharts.tsx` created with mock SVG/CSS charts for Company Research Activity, Jobs Found Over Time, and Match Score Distribution.
+- `components/layout/Navbar.tsx` and `components/layout/NavLinks.tsx` updated to match the dashboard screenshot: right-aligned nav, lucide icons beside labels, active accent underline, and no logout button in the app nav.
+- `context/ui-registry.md` updated with dashboard component patterns and the updated navbar/nav-link pattern.
+- `context/progress-tracker.md` updated: Feature 14 marked complete, current phase is Phase 5 Dashboard, next feature is 15 Stats Bar Real Data.
 
 ## Decisions made
 
-- **URL search params pattern:** All filter/sort/pagination state lives in URL params (`?q=&match=&sort=&page=`). Server component reads them, no new API routes.
-- **`searchParams` is async in Next.js 15/16:** Must `await searchParams` in the page component.
-- **`<Suspense>` required for `useSearchParams` consumers:** `JobFilters` and `JobsPagination` both wrapped in `<Suspense fallback={null}>` in the page.
-- **Debounce via `useRef` pattern:** Stable refs (`routerRef`, `pathnameRef`, `searchParamsRef`) updated every render before the `useEffect` — avoids stale closures without adding them to the effect deps array.
-- **`q` sanitization:** `q.replace(/[,()%]/g, "").trim()` before inserting into `.or()` string — PostgREST parses commas as OR separators, so a user typing "react, node" would break the filter without this.
-- **`MATCH_THRESHOLD = 70` reused:** High/Low match filter uses the same constant from `lib/utils.ts`.
-- **PAGE_SIZE = 20:** Defined as a constant in `page.tsx`.
-- **Match score color thresholds (locked from Feature 09):** ≥90% green (`bg-success`/`text-success`), ≥80% blue (`bg-info`/`text-info-medium`), else orange (`bg-warning`/`text-warning`). Feature 12 `MatchScore` component must use these same thresholds.
-
----
+- `context/designs/dashboard.png` was treated as the visual source of truth. This means the fourth stat is **Jobs This Week**, matching the screenshot and project overview, even though an older build-plan line mentioned Cover Letters Generated.
+- Feature 14 uses mock data only. Real dashboard data is intentionally deferred to Features 15–17.
+- Charts are lightweight SVG/CSS with tokenized colors. No chart dependency was added; Feature 17 can replace the mock chart data/rendering with PostHog-backed data later.
+- The incomplete-profile banner was not rendered because the provided dashboard screenshot shows the completed-profile state. Add the conditional banner later when real profile data is wired.
+- The shared app navbar now follows the dashboard design screenshot rather than the older color-only active-nav registry note.
 
 ## Problems solved
 
-- **`Math.max(1, NaN) = NaN` bug:** `parseInt("abc") = NaN`, and `Math.max(1, NaN)` is `NaN` in JavaScript (not 1). Fixed with `Number.isNaN` guard before `Math.max`.
-- **Comma in search query breaks PostgREST `.or()` syntax:** The filter string `company.ilike.%react, node%,title.ilike.%react, node%` would have PostgREST treat `, node%` as a separate OR condition. Fixed by stripping `,()%` from `q` before use.
-- **DB query error silently discarded:** `error` was not destructured; now logged with `[find-jobs/page]` prefix.
-
----
+- Post-review issue resolved: explicit `ReactElement` / `Promise<ReactElement>` return types were added to the new dashboard components and the shared navbar functions touched by Feature 14.
+- Verified `/dashboard` remains protected: unauthenticated requests redirect to `/login`.
+- Avoided adding a charting library for mock UI, keeping Feature 14 scoped and dependency-free.
 
 ## Current state
 
-- Features 01–11: ✅ complete including all post-review fixes
-- `tsc --noEmit`: passes
-- Phase 3 (Find Jobs Page) fully complete
-- End-to-end verification still requires OAuth `allowedRedirectUrls` configured in InsForge dashboard and `.env.local` keys (`ADZUNA_APP_ID`, `ADZUNA_APP_KEY`, `OPENAI_API_KEY`, `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`)
-
----
+- Features 01–14 are complete.
+- Latest verification passes:
+  - `npx tsc --noEmit`
+  - `npm run lint`
+  - `npm run build`
+- Active dev server was already running at `http://localhost:3000` during the session.
+- Full visual browser verification of `/dashboard` still requires a signed-in session because the route is protected.
 
 ## Next session starts with
 
-**Feature 12 — Job Details Page — Full UI**
+**Feature 15 — Stats Bar Real Data**
 
-Per `context/build-plan.md`:
-1. Run `/architect 12 Job Details Page — Full UI` before writing any code
-2. Build complete UI with real DB data — job info, match score, matched/missing skills, job description, company research empty state
-3. Route: `app/find-jobs/[id]/page.tsx` (already in `architecture.md`)
-4. Components live in `components/job-details/`: `JobInfo`, `MatchScore`, `JobDescription`, `CompanyResearch`, `JobActions`
-5. **MatchScore badge must use the Feature 09/11 thresholds:** ≥90% green, ≥80% blue, else orange — NOT the stale ui-rules.md/ui-tokens.md values
-6. Company research section shows empty state with "Research Company" button (logic wired in Feature 13)
+Start by running `/architect 15 Stats Bar — Real Data`, then wire the dashboard stat cards to real InsForge data for the current user:
 
----
+1. Total Jobs Found: count active jobs scoped to `user_id`.
+2. Avg. Match Rate: average `match_score` across the user’s jobs.
+3. Companies Researched: count jobs where `company_research` is not null.
+4. Jobs This Week: count jobs with `found_at` in the last 7 days.
+
+Reuse the existing `StatsBar` visual pattern. Keep DB queries in `app/dashboard/page.tsx` or server-side helpers, not inside dashboard components.
 
 ## Open questions
 
-- **OAuth allowedRedirectUrls:** add `<origin>/api/auth/callback` to InsForge dashboard. Until then the full auth round-trip is unverified.
-- **`posthog.reset()` on logout:** call `resetPostHog()` from `@/lib/posthog-client` alongside `insforge.auth.signOut()` when logout UI is built.
+- OAuth `allowedRedirectUrls` still needs to include `<origin>/api/auth/callback` in the InsForge dashboard before full auth round-trip verification.
+- When a logout UI is reintroduced, call `resetPostHog()` from `@/lib/posthog-client` alongside `insforge.auth.signOut()`.
+- End-to-end agent and analytics verification still depends on local environment variables being configured; do not persist or expose their values.

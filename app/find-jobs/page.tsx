@@ -95,7 +95,7 @@ export default async function FindJobsPage({
 
   return (
     <>
-      <Navbar showCta={false} />
+      <Navbar showCta={false} showLogout />
       <main className="min-h-screen bg-background">
         <div className="max-w-[1440px] mx-auto px-8 py-8 flex flex-col gap-6">
           <SearchControls />

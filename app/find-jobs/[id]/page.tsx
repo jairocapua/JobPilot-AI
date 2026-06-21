@@ -74,7 +74,7 @@ export default async function JobDetailsPage({
 
   return (
     <>
-      <Navbar showCta={false} />
+      <Navbar showCta={false} showLogout />
       <main className="min-h-screen bg-background">
         <div className="max-w-[760px] mx-auto px-8 py-8 flex flex-col gap-4">
           <Link

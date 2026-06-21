@@ -6,9 +6,9 @@ Update this file after every completed feature. Any AI agent reading this should
 
 ## Current Status
 
-**Phase:** Phase 4 — Job Details Page
-**Last completed:** 13 Company Research Agent
-**Next:** 14 Dashboard Page — Full UI
+**Phase:** Phase 5 — Dashboard
+**Last completed:** Global Button Cursor
+**Next:** 15 Stats Bar — Real Data
 
 ---
 
@@ -41,10 +41,18 @@ Update this file after every completed feature. Any AI agent reading this should
 
 ### Phase 5 — Dashboard
 
-- [ ] 14 Dashboard Page — Full UI
+- [x] 14 Dashboard Page — Full UI
 - [ ] 15 Stats Bar — Real Data
 - [ ] 16 Recent Activity — Real Data
 - [ ] 17 Analytics Charts — PostHog Data
+
+### Cross-cutting Auth Polish
+
+- [x] Logout Button
+
+### Cross-cutting UI Polish
+
+- [x] Global Button Cursor
 
 ---
 
@@ -139,6 +147,22 @@ Update this file after every completed feature. Any AI agent reading this should
 - **13 — post-review fixes applied:** (a) company homepage resolution follows redirects manually with a timeout and public-host validation to avoid unsafe server-side fetches; (b) known ATS/job-board domains fall back to the company-name homepage instead of researching the platform; (c) malformed non-UUID `jobId` values now return 400; (d) dossier bullet-list sections now render visible markers.
 - **13 — Browserbase metadata fix:** Browserbase rejects some `userMetadata` values with spaces/special characters (for example company names like "nTech Solutions"). `lib/browserbase.ts` now slug-sanitizes metadata values before session creation so website browsing can start instead of falling back immediately.
 
+- **14 Dashboard Page — route and UI:** Added `app/dashboard/page.tsx`, protected with the same server-side `getCurrentUser()` check as other app pages, and renders the full dashboard using mock data only. New components: `components/dashboard/StatsBar.tsx`, `RecentActivity.tsx`, and `AnalyticsCharts.tsx`.
+- **14 — design source of truth:** `context/designs/dashboard.png` overrides the older dashboard stat label in build-plan.md. The fourth stat is "Jobs This Week" (not "Cover Letters Generated"), matching the screenshot and project overview.
+- **14 — navbar visual update:** Shared `Navbar`/`NavLinks` now match the dashboard design reference: right-aligned app nav, lucide icons beside labels, active accent underline, and only the three project nav items. The older color-only active nav registry entry was updated.
+- **14 — charts are mock SVG/CSS:** Company Research Activity, Jobs Found Over Time, and Match Score Distribution are rendered with tokenized SVG primitives and mock arrays. No chart dependency was added; Feature 17 can replace the mock data/rendering with PostHog data.
+- **14 — incomplete profile banner:** The reference dashboard screenshot shows no incomplete-profile banner, so Feature 14 renders the completed-profile state only. Feature 15/real dashboard wiring can add the conditional banner when profile data is pulled in.
+- **14 — verification status:** `npx tsc --noEmit` and `npm run lint` pass. Visual browser verification of `/dashboard` still requires a signed-in session because the route is proxy-protected.
+- **14 — post-review fix applied:** Added explicit `ReactElement`/`Promise<ReactElement>` return types to all new dashboard components and the shared navbar functions touched by Feature 14.
+
+- **Logout Button — placement:** Added `components/layout/LogoutButton.tsx` as a secondary account action rendered at the far right of the shared `Navbar` on authenticated app pages via `showLogout`. It is intentionally outside `NavLinks` so the primary navigation remains exactly Dashboard / Find Jobs / Profile.
+- **Logout Button — auth cleanup:** Clicking logout calls `insforge.auth.signOut()` to clear browser SDK state, then `POST /api/auth/logout` to expire the app-domain SSR cookies (`insforge_access_token` + `insforge_refresh_token`) with `clearAuthCookies()`, then calls `resetPostHog()` and redirects to `/login`.
+- **Logout Button — route path:** `app/api/auth/logout/route.ts` returns the standard `{ success: boolean, error?: string }` shape and clears auth cookies in both success and error responses.
+- **Logout Button — verification status:** `npx tsc --noEmit` and `npm run lint` pass. Live browser verification still requires a signed-in session.
+
+- **Global Button Cursor — base CSS:** Added global cursor rules in `app/globals.css`: enabled native buttons and `role="button"` controls use `cursor: pointer`; disabled button-like controls use `cursor: not-allowed`. This avoids adding `cursor-pointer` to every individual button class.
+- **Global Button Cursor — verification status:** `npx tsc --noEmit` and `npm run lint` pass.
+
 - **11 Filter + Sort + Pagination — URL search params pattern:** All filter/sort/pagination state lives in URL params (`?q=&match=&sort=&page=`). `FindJobsPage` (server component) reads them as an async `searchParams` prop (Next.js 15/16 requirement) and builds the InsForge query accordingly. No client-side fetch, no new API route.
 - **11 — InsForge query chain:** `select(..., { count: 'exact' })` returns both `data` and `count`. `.or('company.ilike.%q%,title.ilike.%q%')` handles text search. `.gte('match_score', MATCH_THRESHOLD)` / `.lt(...)` for match filter. `.order()` for sort. `.range(from, to)` for 20-per-page pagination (0-indexed inclusive).
 - **11 — Suspense required for useSearchParams:** `JobFilters` and `JobsPagination` both use `useSearchParams()`. In Next.js App Router, client components using this hook must be wrapped in `<Suspense>` in the parent server component — added to `page.tsx`.
@@ -165,4 +189,4 @@ Update this file after every completed feature. Any AI agent reading this should
 - **Env:** `.env.local` holds `NEXT_PUBLIC_INSFORGE_URL` + `NEXT_PUBLIC_INSFORGE_ANON_KEY`.
 - **06 — verification status:** `next build` + `tsc` pass; a 0-row UPDATE confirmed every column name and cast against the live `profiles` schema. **Not** verified end-to-end (no headless auth session here): the SDK's JS-array→`text[]` / object→`jsonb` serialization on `.upsert()`, the actual save round-trip, and the client-side upload to the private `resumes` bucket are unexercised — verify these in the browser once OAuth is configured (see Auth manual step below).
 
-- **03 PostHog — posthog.reset() deferred:** `posthog.reset()` must be called alongside `insforge.auth.signOut()` when the logout button is built. `resetPostHog()` is already exported from `@/lib/posthog-client` — import and call it there. InsForge `Auth` has no `onAuthStateChange`, so reset cannot be wired reactively.
+- **03 PostHog — logout reset implemented:** `posthog.reset()` is called through `resetPostHog()` inside `components/layout/LogoutButton.tsx` after InsForge sign-out and SSR cookie clearing complete.
