@@ -336,7 +336,7 @@ description: text-sm text-text-primary leading-relaxed whitespace-pre-line
 ### CompanyResearch
 **File:** `components/job-details/CompanyResearch.tsx`
 **Last updated:** 2026-06-22
-**Pattern:** Client component. Single card. Header row: Building2 icon + "Company Research" title + Research Company button (only shown when `research === null`). Empty state: centered building icon box, "No research yet" text, description, optional error text. Completed state renders all dossier fields in compact stacked sections with top borders, tech stack pills, plain text lists, and small source links. Calls `POST /api/agent/research` with `{ jobId }` on button click; calls `router.refresh()` on success.
+**Pattern:** Client component. Single card. Header row: Building2 icon + "Company Research" title + Research Company button (only shown when `research === null`). Empty state: centered building icon box, "No research yet" text, description, optional error text. Loading state shows a multi-step process. Completed state renders a candidate briefing summary followed by icon-led dossier sections with section descriptions, stronger priority hierarchy, tokenized pills, list rows, and compact source rows. Calls `POST /api/agent/research` with `{ jobId }` on button click; calls `router.refresh()` on success.
 ```
 card: bg-surface border border-border rounded-xl shadow-sm p-6
 Research Company btn: flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-foreground text-sm font-medium rounded-md hover:opacity-90 transition-opacity disabled:opacity-50
@@ -352,21 +352,37 @@ loading step pending icon: border-border bg-surface-secondary text-text-muted wi
 loading connector: mt-2 h-full min-h-6 w-px bg-border
 loading step title: text-sm font-medium text-text-primary
 loading step description: text-xs text-text-muted leading-relaxed
+completed wrapper: flex flex-col
+briefing wrapper: border-t border-border pt-5
+briefing icon: h-9 w-9 rounded-lg border border-accent-light bg-accent-muted text-accent
+briefing eyebrow: text-xs font-semibold text-accent uppercase tracking-wide
+briefing paragraph: text-sm text-text-primary leading-relaxed
+summary pills: inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-secondary px-2.5 py-1 text-xs font-medium text-text-secondary
+dossier section: border-t border-border pt-5
+dossier header row: flex items-start gap-3 mb-3
+dossier icon base: flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border
+dossier icon accent: bg-accent-muted text-accent border-accent-light
+dossier icon success: bg-success-lightest text-success border-success-light
+dossier icon info: bg-info-lightest text-info-foreground border-info-light
+dossier icon warning: bg-warning/10 text-warning border-warning/20
+dossier icon neutral: bg-surface-secondary text-text-muted border-border
+dossier section title: text-sm font-semibold text-text-primary
+dossier section description: text-xs text-text-muted leading-relaxed
+dossier list: flex flex-col gap-2
+dossier list row: flex gap-3
+dossier list marker: mt-0.5 h-5 w-5 rounded-full bg-surface-secondary border border-border text-xs font-semibold text-text-secondary
+dossier list text: text-sm text-text-primary leading-relaxed
+why-this-role callout: border-l-2 border-accent pl-3 text-sm text-text-primary leading-relaxed
+tech stack pill: inline-flex items-center gap-1.5 rounded-full bg-info-lightest px-2.5 py-1 text-xs font-medium text-info-foreground
+source link row: group inline-flex items-start gap-2 rounded-lg border border-border px-3 py-2 text-xs text-accent transition-colors hover:bg-surface-secondary
+source fallback row: rounded-lg border border-border px-3 py-2 text-xs text-text-muted
 empty state icon box: w-12 h-12 rounded-xl bg-surface-secondary border border-border
 empty state text: text-sm font-medium text-text-primary
 empty state sub-text: text-xs text-text-muted text-center max-w-xs leading-relaxed
 error text: text-sm text-error
-completed wrapper: flex flex-col gap-4
-overview/paragraph text: text-sm text-text-primary leading-relaxed
-dossier section: border-t border-border pt-4
-dossier section title: text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2
-dossier list: list-disc pl-5 space-y-2 marker:text-text-muted
-dossier list item: text-sm text-text-primary leading-relaxed
-tech stack pill: text-xs font-medium px-2.5 py-1 rounded-full bg-info-lightest text-info-foreground
-source link: inline-flex items-center gap-1.5 text-xs text-accent hover:opacity-80 transition-opacity break-all
-source fallback text: text-xs text-text-muted
 ```
 **State pattern:** `researching` swaps the empty state for the loading stepper while `/api/agent/research` is in flight. `activeStep` resets on click and advances every 6.5s, capping at the final step because the backend does not stream real progress events. Steps describe the actual agent workflow: resolve company site, read public pages, connect findings to the profile, and build the dossier.
+**Completed-state notes:** Keep the overview as a candidate briefing summary before all detailed sections. Use icon-led section headers to make the dossier scannable without nesting cards inside the card. `Your Edge` and `Interview Prep` use check markers, `Smart Questions` uses numbered markers, and `Why This Role` uses the accent left rule to read as a concise callout.
 
 ### JobActions
 **File:** `components/job-details/JobActions.tsx`
